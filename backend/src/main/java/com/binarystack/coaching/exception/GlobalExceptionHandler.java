@@ -29,24 +29,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex,
                                                                  WebRequest request) {
-        List<String> errors = ex.getBindingResult().getAllErrors().stream()
-                .map(error -> {
-                    if (error == null) {
-                        return "Validation error";
-                    }
-                    if (error instanceof FieldError fe) {
-                        String message = Objects.toString(fe.getDefaultMessage(), "Invalid value");
-                        return fe.getField() + ": " + message;
-                    }
-                    return Objects.toString(error.getDefaultMessage(), "Validation error");
-                })
-                .toList();
+        Map<String, String> errors = new LinkedHashMap<>();
+        for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
+            errors.put(fe.getField(), fe.getDefaultMessage());
+        }
 
         Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", false);
+        body.put("message", "Validation failed");
+        body.put("data", errors);
         body.put("timestamp", LocalDateTime.now().toString());
-        body.put("status", HttpStatus.BAD_REQUEST.value());
-        body.put("errors", errors);
-        body.put("path", request.getDescription(false));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
@@ -65,11 +57,14 @@ public class GlobalExceptionHandler {
                                                                     String message,
                                                                     WebRequest request) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", LocalDateTime.now().toString());
-        body.put("status", status.value());
-        body.put("error", status.getReasonPhrase());
+        body.put("success", false);
         body.put("message", message);
-        body.put("path", request.getDescription(false));
+        body.put("data", Map.of(
+            "status", status.value(),
+            "error", status.getReasonPhrase(),
+            "path", request.getDescription(false)
+        ));
+        body.put("timestamp", LocalDateTime.now().toString());
         return ResponseEntity.status(status).body(body);
     }
 }

@@ -44,7 +44,7 @@ public class ClassSessionService {
 
     @Transactional
     public ClassSessionDto createSession(ClassSessionDto dto) {
-        validateSessionTime(dto.getStartTime(), dto.getEndTime());
+        validateSession(dto);
 
         ClassSession session = new ClassSession();
         applyDto(session, dto);
@@ -57,7 +57,7 @@ public class ClassSessionService {
     @Transactional
     public ClassSessionDto updateSession(Long id, ClassSessionDto dto) {
         Objects.requireNonNull(id, "Session id must not be null");
-        validateSessionTime(dto.getStartTime(), dto.getEndTime());
+        validateSession(dto);
 
         ClassSession session = findByIdOrThrow(id);
         applyDto(session, dto);
@@ -87,13 +87,27 @@ public class ClassSessionService {
         session.setActive(dto.getActive() == null || dto.getActive());
     }
 
-    private void validateSessionTime(LocalDateTime startTime, LocalDateTime endTime) {
+    private void validateSession(ClassSessionDto dto) {
+        LocalDateTime startTime = dto.getStartTime();
+        LocalDateTime endTime = dto.getEndTime();
+
         if (startTime == null || endTime == null) {
             throw new BadRequestException("Start and end time are required");
         }
 
         if (!endTime.isAfter(startTime)) {
             throw new BadRequestException("End time must be after start time");
+        }
+
+        SessionMode mode = dto.getMode() == null ? SessionMode.ONLINE : dto.getMode();
+        if ((mode == SessionMode.ONLINE || mode == SessionMode.HYBRID) &&
+                (dto.getMeetingLink() == null || dto.getMeetingLink().isBlank())) {
+            throw new BadRequestException("Meeting link is required for ONLINE/HYBRID sessions");
+        }
+
+        if ((mode == SessionMode.OFFLINE || mode == SessionMode.HYBRID) &&
+                (dto.getLocation() == null || dto.getLocation().isBlank())) {
+            throw new BadRequestException("Location is required for OFFLINE/HYBRID sessions");
         }
     }
 

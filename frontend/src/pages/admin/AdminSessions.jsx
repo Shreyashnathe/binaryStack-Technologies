@@ -220,6 +220,7 @@ export default function AdminSessions() {
                   <label className="label">Start Time</label>
                   <input
                     type="datetime-local"
+                    min={new Date().toISOString().slice(0, 16)}
                     className="input-field"
                     value={form.startTime}
                     onChange={(e) => setForm({ ...form, startTime: e.target.value })}
@@ -230,6 +231,7 @@ export default function AdminSessions() {
                   <label className="label">End Time</label>
                   <input
                     type="datetime-local"
+                    min={form.startTime || new Date().toISOString().slice(0, 16)}
                     className="input-field"
                     value={form.endTime}
                     onChange={(e) => setForm({ ...form, endTime: e.target.value })}
@@ -244,7 +246,15 @@ export default function AdminSessions() {
                   <select
                     className="input-field"
                     value={form.mode}
-                    onChange={(e) => setForm({ ...form, mode: e.target.value })}
+                    onChange={(e) => {
+                      const newMode = e.target.value;
+                      setForm({
+                        ...form,
+                        mode: newMode,
+                        meetingLink: newMode === 'OFFLINE' ? '' : form.meetingLink,
+                        location: newMode === 'ONLINE' ? '' : form.location
+                      });
+                    }}
                   >
                     <option value="ONLINE">ONLINE</option>
                     <option value="OFFLINE">OFFLINE</option>
@@ -264,25 +274,31 @@ export default function AdminSessions() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Meeting Link</label>
-                  <input
-                    type="url"
-                    className="input-field"
-                    value={form.meetingLink}
-                    onChange={(e) => setForm({ ...form, meetingLink: e.target.value })}
-                    placeholder="https://..."
-                  />
-                </div>
-                <div>
-                  <label className="label">Location</label>
-                  <input
-                    className="input-field"
-                    value={form.location}
-                    onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    placeholder="Classroom or branch"
-                  />
-                </div>
+                {(form.mode === 'ONLINE' || form.mode === 'HYBRID') && (
+                  <div>
+                    <label className="label">Meeting Link <span className="text-red-500 font-bold">*</span></label>
+                    <input
+                      type="url"
+                      className="input-field"
+                      value={form.meetingLink}
+                      onChange={(e) => setForm({ ...form, meetingLink: e.target.value })}
+                      placeholder="https://..."
+                      required
+                    />
+                  </div>
+                )}
+                {(form.mode === 'OFFLINE' || form.mode === 'HYBRID') && (
+                  <div>
+                    <label className="label">Location <span className="text-red-500 font-bold">*</span></label>
+                    <input
+                      className="input-field"
+                      value={form.location}
+                      onChange={(e) => setForm({ ...form, location: e.target.value })}
+                      placeholder="Classroom or branch"
+                      required
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">

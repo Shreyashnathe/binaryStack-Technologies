@@ -25,11 +25,41 @@ function formatDate(value) {
 export default function ProfilePage() {
   const { user, syncUserProfile } = useAuth();
   const [form, setForm] = useState(emptyForm);
+  const [errors, setErrors] = useState({});
   const [createdAt, setCreatedAt] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const maxDobDate = new Date();
+  maxDobDate.setFullYear(maxDobDate.getFullYear() - 15);
+  const maxDob = maxDobDate.toISOString().split('T')[0];
+
+  const validateField = (name, value) => {
+    let err = '';
+    if (name === 'name') {
+      if (value.trim().length < 2) {
+        err = 'Name must be at least 2 characters';
+      } else if (!/^[a-zA-Z0-9 ]+$/.test(value)) {
+        err = 'Name must not contain special characters';
+      }
+    } else if (name === 'phoneNumber') {
+      if (!/^[6-9]\d{9}$/.test(value)) {
+        err = 'Phone number must be a valid 10-digit Indian number';
+      }
+    } else if (name === 'dateOfBirth') {
+      if (value) {
+        const dob = new Date(value);
+        const today = new Date();
+        const finalAge = today.getFullYear() - dob.getFullYear() - (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate()) ? 1 : 0);
+        if (finalAge < 15) {
+          err = 'You must be at least 15 years old';
+        }
+      }
+    }
+    return err;
+  };
 
   const completionFields = [
     form.name,
@@ -66,12 +96,34 @@ export default function ProfilePage() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const err = validateField(name, value);
+    setErrors((prev) => ({ ...prev, [name]: err }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Pre-submit validation
+    const currentErrors = {};
+    Object.keys(form).forEach((key) => {
+      const err = validateField(key, form[key]);
+      if (err) currentErrors[key] = err;
+    });
+
+    if (Object.keys(currentErrors).some((k) => currentErrors[k])) {
+      setErrors(currentErrors);
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
@@ -94,6 +146,12 @@ export default function ProfilePage() {
       setSaving(false);
     }
   };
+
+  const isFormInvalid =
+    Object.values(errors).some((err) => err) ||
+    !form.name ||
+    !form.phoneNumber ||
+    !form.city;
 
   return (
     <Layout>
@@ -130,16 +188,18 @@ export default function ProfilePage() {
                   <label className="label">Full Name</label>
                   <input
                     name="name"
-                    className="input-field"
+                    className={`input-field ${errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
                     value={form.name}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
                   />
+                  {errors.name && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.name}</p>}
                 </div>
                 <div>
                   <label className="label">Email Address</label>
                   <input
-                    className="input-field bg-slate-100"
+                    className="input-field bg-slate-100 animate-none opacity-80"
                     value={user?.email || ''}
                     disabled
                   />
@@ -151,11 +211,13 @@ export default function ProfilePage() {
                   <label className="label">Phone Number</label>
                   <input
                     name="phoneNumber"
-                    className="input-field"
+                    className={`input-field ${errors.phoneNumber ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
                     value={form.phoneNumber}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
                   />
+                  {errors.phoneNumber && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.phoneNumber}</p>}
                 </div>
               </div>
 
@@ -175,10 +237,13 @@ export default function ProfilePage() {
                   <input
                     name="dateOfBirth"
                     type="date"
-                    className="input-field"
+                    max={maxDob}
+                    className={`input-field ${errors.dateOfBirth ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
                     value={form.dateOfBirth || ''}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                   />
+                  {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.dateOfBirth}</p>}
                 </div>
               </div>
 

@@ -3,16 +3,20 @@ package com.binarystack.coaching.dto.auth;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
+import com.binarystack.coaching.validation.MinAge;
 
 import java.time.LocalDate;
 
 public class UpdateProfileRequest {
 
     @NotBlank(message = "Name is required")
+    @Size(min = 2, message = "Name must be at least 2 characters")
+    @Pattern(regexp = "^[a-zA-Z0-9 ]+$", message = "Name must not contain special characters")
     private String name;
 
     @NotBlank(message = "Phone number is required")
-    @Size(min = 7, max = 20, message = "Phone number should be between 7 and 20 characters")
+    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Phone number must be a valid 10-digit Indian number starting with 6-9")
     private String phoneNumber;
 
     @NotBlank(message = "City is required")
@@ -25,6 +29,7 @@ public class UpdateProfileRequest {
     private String bio;
 
     @Past(message = "Date of birth must be in the past")
+    @MinAge(value = 15, message = "Student must be at least 15 years old")
     private LocalDate dateOfBirth;
 
     public String getName() {

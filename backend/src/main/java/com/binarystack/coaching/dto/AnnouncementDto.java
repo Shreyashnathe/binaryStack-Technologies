@@ -2,6 +2,7 @@ package com.binarystack.coaching.dto;
 
 import com.binarystack.coaching.enums.AnnouncementAudience;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
 
@@ -10,9 +11,11 @@ public class AnnouncementDto {
     private Long id;
 
     @NotBlank(message = "Title is required")
+    @Size(min = 3, message = "Title must be at least 3 characters")
     private String title;
 
     @NotBlank(message = "Message is required")
+    @Size(min = 10, message = "Message must be at least 10 characters")
     private String message;
 
     private AnnouncementAudience audience;
