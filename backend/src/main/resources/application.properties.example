@@ -1,0 +1,27 @@
+# ==========================================
+# BinaryStack Technologies - App Config Example
+# ==========================================
+# Copy this file to application-local.properties and fill in the values below
+# to customize your local development settings. Do not commit application-local.properties.
+
+# ---- MySQL DataSource ----
+spring.datasource.url=jdbc:mysql://localhost:3306/binarystack_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+spring.datasource.username=root
+spring.datasource.password=YOUR_DATABASE_PASSWORD
+
+# ---- JWT ----
+# Must be at least 32 characters long
+app.jwt.secret=YOUR_JWT_SECRET_KEY_MUST_BE_AT_LEAST_32_CHARACTERS_LONG
+app.jwt.expiration-ms=86400000
+
+# ---- Admin Seed ----
+app.admin.email=owner123@gmail.com
+app.admin.password=Admin@123
+
+# ---- OpenRouter API ----
+openrouter.api-key=YOUR_OPENROUTER_API_KEY
+
+# ---- Razorpay (Demo / Sandbox) ----
+app.razorpay.key-id=YOUR_RAZORPAY_KEY_ID
+app.razorpay.key-secret=YOUR_RAZORPAY_KEY_SECRET
+app.razorpay.currency=INR
