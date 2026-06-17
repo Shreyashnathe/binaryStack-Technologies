@@ -19,10 +19,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.util.List;
 import com.binarystack.coaching.dto.EnrollmentDto;
 import com.binarystack.coaching.dto.RazorpayOrderRequest;
 import com.binarystack.coaching.dto.RazorpayOrderResponse;
 import com.binarystack.coaching.dto.RazorpayVerifyRequest;
+import com.binarystack.coaching.dto.RazorpayCartOrderResponse;
+import com.binarystack.coaching.dto.RazorpayCartVerifyRequest;
 import com.binarystack.coaching.entity.Course;
 import com.binarystack.coaching.entity.User;
 import com.binarystack.coaching.enums.Role;
@@ -285,5 +288,89 @@ public class RazorpayPaymentService {
             hex.append(part);
         }
         return hex.toString();
+    }
+
+    public RazorpayCartOrderResponse createCartOrder(Long studentId, List<Course> courses, BigDecimal totalPrice) {
+        User student = getStudent(studentId);
+        
+        long amountInPaise = toPaise(totalPrice);
+        String receipt = "cart_checkout_" + studentId + "_" + System.currentTimeMillis();
+
+        JsonNode orderResponse;
+        try {
+            orderResponse = restClient.post()
+                    .uri("/orders")
+                    .header(HttpHeaders.AUTHORIZATION, basicAuthHeader)
+                    .body(Map.of(
+                            "amount", amountInPaise,
+                            "currency", currency,
+                            "receipt", receipt,
+                            "payment_capture", 1
+                    ))
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (RestClientResponseException ex) {
+            int status = ex.getStatusCode().value();
+            String responseBody = ex.getResponseBodyAsString();
+            if (status == 401) {
+                log.error("Razorpay cart order creation failed: HTTP 401, keyIdPrefix={}..., response={}", maskKeyId(keyId), responseBody);
+                throw new BadRequestException("Razorpay authentication failed (HTTP 401). Verify APP_RAZORPAY_KEY_ID and APP_RAZORPAY_KEY_SECRET.");
+            }
+            log.error("Razorpay cart order creation failed: HTTP {}, response={}", status, responseBody);
+            throw new BadRequestException("Unable to create Razorpay order. Please try again.");
+        }
+
+        if (orderResponse == null || orderResponse.path("id").asText().isBlank()) {
+            throw new BadRequestException("Unable to create Razorpay order. Please try again.");
+        }
+
+        String razorpayOrderId = orderResponse.path("id").asText();
+        log.info("Razorpay cart order created: orderId={}, studentId={}, amount={}",
+                razorpayOrderId, studentId, amountInPaise);
+
+        List<Long> courseIds = courses.stream().map(Course::getId).toList();
+        String coursesTitle = "Enrollment in " + courses.size() + " Course(s)";
+
+        return new RazorpayCartOrderResponse(
+                keyId,
+                razorpayOrderId,
+                amountInPaise,
+                currency,
+                studentId,
+                courseIds,
+                coursesTitle,
+                student.getName(),
+                student.getEmail(),
+                student.getPhoneNumber()
+        );
+    }
+
+    public void verifyCartPayment(RazorpayCartVerifyRequest request, BigDecimal totalPrice) {
+        User student = getStudent(request.getStudentId());
+
+        JsonNode orderDetails = fetchOrderDetails(request.getRazorpayOrderId());
+        
+        long expectedAmountInPaise = toPaise(totalPrice);
+        
+        if (orderDetails == null) {
+            throw new BadRequestException("Payment order details are unavailable.");
+        }
+
+        long orderAmount = orderDetails.path("amount").asLong(-1);
+        String orderCurrency = orderDetails.path("currency").asText("");
+        String receipt = orderDetails.path("receipt").asText("");
+        String expectedReceiptPrefix = "cart_checkout_" + request.getStudentId() + "_";
+
+        if (orderAmount != expectedAmountInPaise || !currency.equalsIgnoreCase(orderCurrency) || !receipt.startsWith(expectedReceiptPrefix)) {
+            throw new BadRequestException("Payment details do not match selected courses.");
+        }
+
+        String expectedSignature = generateSignature(request.getRazorpayOrderId(), request.getRazorpayPaymentId());
+        if (!signaturesMatch(expectedSignature, request.getRazorpaySignature())) {
+            throw new BadRequestException("Payment verification failed.");
+        }
+
+        log.info("Razorpay cart payment verified: orderId={}, paymentId={}, studentId={}",
+                request.getRazorpayOrderId(), request.getRazorpayPaymentId(), request.getStudentId());
     }
 }

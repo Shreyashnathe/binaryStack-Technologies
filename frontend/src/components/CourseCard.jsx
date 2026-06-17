@@ -1,4 +1,15 @@
-export default function CourseCard({ course, onEnroll, enrolled, isAdmin, onEdit, onDelete }) {
+import { Link } from 'react-router-dom';
+
+export default function CourseCard({
+  course,
+  onEnroll,
+  enrolled,
+  isAdmin,
+  onEdit,
+  onDelete,
+  inCart,
+  onAddToCart,
+}) {
   return (
     <div className="card hover:border-primary-600/40 transition-all duration-200 animate-fade-in group">
       <div className="flex items-start justify-between mb-3">
@@ -31,13 +42,35 @@ export default function CourseCard({ course, onEnroll, enrolled, isAdmin, onEdit
             </button>
           </>
         ) : (
-          <button
-            onClick={() => onEnroll(course)}
-            disabled={enrolled}
-            className={`w-full text-sm py-2 ${enrolled ? 'btn-secondary opacity-60 cursor-not-allowed' : 'btn-primary'}`}
-          >
-            {enrolled ? 'Enrolled' : 'Enroll Now'}
-          </button>
+          enrolled ? (
+            <button
+              disabled
+              className="w-full text-sm py-2 btn-secondary opacity-60 cursor-not-allowed"
+            >
+              Enrolled
+            </button>
+          ) : Number(course.price) === 0 ? (
+            <button
+              onClick={() => onEnroll(course)}
+              className="w-full text-sm py-2 btn-primary"
+            >
+              Enroll Now
+            </button>
+          ) : inCart ? (
+            <Link
+              to="/student/cart"
+              className="w-full text-center text-sm py-2 btn-secondary border-primary-500 text-primary-700 bg-primary-50/50 hover:bg-primary-50 hover:text-primary-800 transition-colors"
+            >
+              In Cart (Go to Cart)
+            </Link>
+          ) : (
+            <button
+              onClick={() => onAddToCart(course)}
+              className="w-full text-sm py-2 btn-primary"
+            >
+              Add to Cart
+            </button>
+          )
         )}
       </div>
     </div>

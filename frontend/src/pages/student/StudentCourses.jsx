@@ -9,6 +9,7 @@ import {
   verifyRazorpayPayment,
 } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 
 const RAZORPAY_SCRIPT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
 
@@ -28,6 +29,7 @@ const loadRazorpayCheckout = () => new Promise((resolve) => {
 
 export default function StudentCourses() {
   const { user } = useAuth();
+  const { isInCart, addToCart } = useCart();
   const [courses, setCourses]         = useState([]);
   const [enrolledIds, setEnrolledIds] = useState(new Set());
   const [loading, setLoading]         = useState(true);
@@ -171,6 +173,8 @@ export default function StudentCourses() {
               course={c}
               onEnroll={openEnrollModal}
               enrolled={enrolledIds.has(c.id)}
+              inCart={isInCart(c.id)}
+              onAddToCart={addToCart}
             />
           ))}
         </div>

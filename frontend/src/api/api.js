@@ -40,6 +40,13 @@ export const createCourse    = (data)     => API.post('/courses', data);
 export const updateCourse    = (id, data) => API.put(`/courses/${id}`, data);
 export const deleteCourse    = (id)       => API.delete(`/courses/${id}`);
 
+// ---- Cart (v1) ----
+export const addToCart = (studentId, courseId) => API.post(`/v1/cart/add?studentId=${studentId}&courseId=${courseId}`);
+export const getCart = (studentId) => API.get(`/v1/cart?studentId=${studentId}`);
+export const removeFromCart = (studentId, courseId) => API.delete(`/v1/cart/remove?studentId=${studentId}&courseId=${courseId}`);
+export const checkoutCart = (studentId) => API.post(`/v1/cart/checkout?studentId=${studentId}`);
+export const verifyCartPayment = (payload) => API.post('/v1/cart/verify', payload);
+
 // ---- Enrollments ----
 export const enroll                  = (studentId, courseId) => API.post(`/enrollments?studentId=${studentId}&courseId=${courseId}`);
 export const getStudentEnrollments   = (studentId)           => API.get(`/enrollments/student/${studentId}`);

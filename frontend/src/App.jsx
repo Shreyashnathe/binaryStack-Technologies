@@ -16,6 +16,7 @@ import AiChatPage        from './pages/student/AiChatPage';
 import StudentAnnouncements from './pages/student/StudentAnnouncements';
 import StudentSchedule from './pages/student/StudentSchedule';
 import ProfilePage from './pages/ProfilePage';
+import CartPage from './pages/student/CartPage';
 
 // Admin pages
 import AdminDashboard   from './pages/admin/AdminDashboard';
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="/student/announcements" element={<ProtectedRoute role="STUDENT"><StudentAnnouncements /></ProtectedRoute>} />
             <Route path="/student/schedule" element={<ProtectedRoute role="STUDENT"><StudentSchedule /></ProtectedRoute>} />
             <Route path="/student/profile" element={<ProtectedRoute role="STUDENT"><ProfilePage /></ProtectedRoute>} />
+            <Route path="/student/cart" element={<ProtectedRoute role="STUDENT"><CartPage /></ProtectedRoute>} />
 
             {/* Admin routes */}
             <Route path="/admin/dashboard"   element={<ProtectedRoute role="ADMIN"><AdminDashboard /></ProtectedRoute>} />

@@ -1,30 +1,56 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import {
+  getCart as apiGetCart,
+  addToCart as apiAddToCart,
+  removeFromCart as apiRemoveFromCart,
+} from '../api/api';
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const [cartItems, setCartItems] = useState(() => {
-    try {
-      const stored = localStorage.getItem('cart');
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
+  const { user } = useAuth();
+  const [cartItems, setCartItems] = useState([]);
 
+  // Fetch cart items from database when user is a STUDENT
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-  }, [cartItems]);
+    if (user && user.role === 'STUDENT') {
+      apiGetCart(user.userId)
+        .then((res) => {
+          const items = res.data?.data || [];
+          setCartItems(items);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch cart items:', err);
+        });
+    } else {
+      setCartItems([]);
+    }
+  }, [user]);
 
-  const addToCart = (course) => {
-    setCartItems((prev) => {
-      if (prev.some((item) => item.id === course.id)) return prev;
-      return [...prev, course];
-    });
+  const addToCart = async (course) => {
+    if (!user) return;
+    try {
+      await apiAddToCart(user.userId, course.id);
+      setCartItems((prev) => {
+        if (prev.some((item) => item.id === course.id)) return prev;
+        return [...prev, course];
+      });
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      throw err;
+    }
   };
 
-  const removeFromCart = (courseId) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== courseId));
+  const removeFromCart = async (courseId) => {
+    if (!user) return;
+    try {
+      await apiRemoveFromCart(user.userId, courseId);
+      setCartItems((prev) => prev.filter((item) => item.id !== courseId));
+    } catch (err) {
+      console.error('Error removing from cart:', err);
+      throw err;
+    }
   };
 
   const clearCart = () => {

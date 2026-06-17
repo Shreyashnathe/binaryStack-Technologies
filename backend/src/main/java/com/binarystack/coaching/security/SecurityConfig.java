@@ -62,6 +62,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/enrollments/**").hasAnyRole("STUDENT", "ADMIN")
                 .requestMatchers("/api/payments/**").hasAnyRole("STUDENT", "ADMIN")
                 .requestMatchers("/api/ai/**").hasAnyRole("STUDENT", "ADMIN")
+                .requestMatchers("/api/v1/cart/**").hasAnyRole("STUDENT", "ADMIN")
                 // Everything else requires auth
                 .anyRequest().authenticated()
             )
