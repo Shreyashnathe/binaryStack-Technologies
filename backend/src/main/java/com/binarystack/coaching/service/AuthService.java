@@ -120,6 +120,17 @@ public class AuthService {
         return toProfileResponse(updated);
     }
 
+    @Transactional
+    public void changePassword(String email, String currentPassword, String newPassword) {
+        User user = findByEmailOrThrow(email);
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new BadRequestException("Incorrect current password");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Password changed successfully for user: {}", user.getEmail());
+    }
+
     private User findByEmailOrThrow(String email) {
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         return userRepository.findByEmail(normalizedEmail)

@@ -86,6 +86,8 @@ public class CartService {
                 course.getTitle(),
                 course.getDescription(),
                 course.getPrice(),
+                course.getDurationDays(),
+                course.getTotalHours(),
                 course.getCreatedAt(),
                 course.getUpdatedAt()
         );
@@ -100,6 +102,8 @@ public class CartService {
                         item.getCourse().getTitle(),
                         item.getCourse().getDescription(),
                         item.getCourse().getPrice(),
+                        item.getCourse().getDurationDays(),
+                        item.getCourse().getTotalHours(),
                         item.getCourse().getCreatedAt(),
                         item.getCourse().getUpdatedAt()
                 ))
@@ -116,8 +120,23 @@ public class CartService {
         cartItemRepository.delete(cartItem);
     }
 
+    private BigDecimal applyDiscount(BigDecimal amount, String coupon) {
+        if (coupon == null || coupon.trim().isEmpty()) {
+            return amount;
+        }
+        String cleanCoupon = coupon.trim().toUpperCase();
+        if ("SAVE10".equals(cleanCoupon)) {
+            return amount.multiply(new BigDecimal("0.90")).setScale(2, java.math.RoundingMode.HALF_UP);
+        } else if ("BINARYSTACK20".equals(cleanCoupon)) {
+            return amount.multiply(new BigDecimal("0.80")).setScale(2, java.math.RoundingMode.HALF_UP);
+        } else if ("WELCOME50".equals(cleanCoupon)) {
+            return amount.multiply(new BigDecimal("0.50")).setScale(2, java.math.RoundingMode.HALF_UP);
+        }
+        throw new BadRequestException("Invalid coupon code");
+    }
+
     @Transactional
-    public RazorpayCartOrderResponse checkoutCart(Long studentId) {
+    public RazorpayCartOrderResponse checkoutCart(Long studentId, String coupon) {
         User student = getStudent(studentId);
         List<CartItem> cartItems = cartItemRepository.findByStudentId(studentId);
         if (cartItems.isEmpty()) {
@@ -136,7 +155,8 @@ public class CartService {
             totalAmount = totalAmount.add(course.getPrice() == null ? BigDecimal.ZERO : course.getPrice());
         }
 
-        return razorpayPaymentService.createCartOrder(studentId, courses, totalAmount);
+        BigDecimal discountedAmount = applyDiscount(totalAmount, coupon);
+        return razorpayPaymentService.createCartOrder(studentId, courses, discountedAmount);
     }
 
     @Transactional
@@ -159,8 +179,10 @@ public class CartService {
             totalAmount = totalAmount.add(course.getPrice() == null ? BigDecimal.ZERO : course.getPrice());
         }
 
+        BigDecimal discountedAmount = applyDiscount(totalAmount, request.getCoupon());
+
         // Verify the payment
-        razorpayPaymentService.verifyCartPayment(request, totalAmount);
+        razorpayPaymentService.verifyCartPayment(request, discountedAmount);
 
         // Perform bulk enrollment
         List<EnrollmentDto> enrollments = new ArrayList<>();

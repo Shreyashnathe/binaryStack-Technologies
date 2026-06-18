@@ -57,4 +57,15 @@ public class AuthController {
                                                                Authentication authentication) {
         return ResponseEntity.ok(authService.updateCurrentProfile(authentication.getName(), request));
     }
+
+    @PostMapping("/change-password")
+    @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Change current logged-in user password")
+    public ResponseEntity<com.binarystack.coaching.dto.ApiResponse<Void>> changePassword(
+            @Valid @RequestBody com.binarystack.coaching.dto.auth.ChangePasswordRequest request,
+            Authentication authentication) {
+        authService.changePassword(authentication.getName(), request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.ok(new com.binarystack.coaching.dto.ApiResponse<>(true, "Password changed successfully", null));
+    }
 }

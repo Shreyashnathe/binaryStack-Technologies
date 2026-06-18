@@ -24,19 +24,26 @@ public class Enrollment {
     @Column(name = "enrolled_at", updatable = false)
     private LocalDateTime enrolledAt;
 
+    @Column(name = "expiry_date")
+    private LocalDateTime expiryDate;
+
     public Enrollment() {
     }
 
-    public Enrollment(Long id, User student, Course course, LocalDateTime enrolledAt) {
+    public Enrollment(Long id, User student, Course course, LocalDateTime enrolledAt, LocalDateTime expiryDate) {
         this.id = id;
         this.student = student;
         this.course = course;
         this.enrolledAt = enrolledAt;
+        this.expiryDate = expiryDate;
     }
 
     @PrePersist
     protected void onCreate() {
         this.enrolledAt = LocalDateTime.now();
+        if (this.course != null && this.course.getDurationDays() != null) {
+            this.expiryDate = this.enrolledAt.plusDays(this.course.getDurationDays());
+        }
     }
 
     public Long getId() {
@@ -61,6 +68,14 @@ public class Enrollment {
 
     public void setCourse(Course course) {
         this.course = course;
+    }
+
+    public LocalDateTime getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(LocalDateTime expiryDate) {
+        this.expiryDate = expiryDate;
     }
 
     public LocalDateTime getEnrolledAt() {

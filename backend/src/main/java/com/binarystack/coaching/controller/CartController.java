@@ -56,8 +56,9 @@ public class CartController {
     @PostMapping("/checkout")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Checkout cart and generate combined Razorpay order")
-    public ResponseEntity<ApiResponse<RazorpayCartOrderResponse>> checkout(@RequestParam Long studentId) {
-        RazorpayCartOrderResponse order = cartService.checkoutCart(studentId);
+    public ResponseEntity<ApiResponse<RazorpayCartOrderResponse>> checkout(@RequestParam Long studentId,
+                                                                           @RequestParam(required = false) String coupon) {
+        RazorpayCartOrderResponse order = cartService.checkoutCart(studentId, coupon);
         ApiResponse<RazorpayCartOrderResponse> response = new ApiResponse<>(true, "Razorpay order created for cart checkout", order);
         return ResponseEntity.ok(response);
     }

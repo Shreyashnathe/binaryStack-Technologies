@@ -45,6 +45,8 @@ public class CourseService {
         course.setTitle(dto.getTitle());
         course.setDescription(dto.getDescription());
         course.setPrice(dto.getPrice());
+        course.setDurationDays(dto.getDurationDays());
+        course.setTotalHours(dto.getTotalHours());
         Course saved = courseRepository.save(course);
         log.info("Course created: {}", saved.getTitle());
         return toDto(saved);
@@ -57,6 +59,8 @@ public class CourseService {
         course.setTitle(dto.getTitle());
         course.setDescription(dto.getDescription());
         course.setPrice(dto.getPrice());
+        course.setDurationDays(dto.getDurationDays());
+        course.setTotalHours(dto.getTotalHours());
         Course updated = courseRepository.save(course);
         log.info("Course updated: id={}", id);
         return toDto(updated);
@@ -85,6 +89,8 @@ public class CourseService {
             course.getTitle(),
             course.getDescription(),
             course.getPrice(),
+            course.getDurationDays(),
+            course.getTotalHours(),
             course.getCreatedAt(),
             course.getUpdatedAt()
         );

@@ -26,6 +26,12 @@ public class Course {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    @Column(name = "duration_days")
+    private Integer durationDays;
+
+    @Column(name = "total_hours")
+    private Integer totalHours;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -39,12 +45,16 @@ public class Course {
                   String title,
                   String description,
                   BigDecimal price,
+                  Integer durationDays,
+                  Integer totalHours,
                   LocalDateTime createdAt,
                   LocalDateTime updatedAt) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.price = price;
+        this.durationDays = durationDays;
+        this.totalHours = totalHours;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -90,6 +100,22 @@ public class Course {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public Integer getDurationDays() {
+        return durationDays;
+    }
+
+    public void setDurationDays(Integer durationDays) {
+        this.durationDays = durationDays;
+    }
+
+    public Integer getTotalHours() {
+        return totalHours;
+    }
+
+    public void setTotalHours(Integer totalHours) {
+        this.totalHours = totalHours;
     }
 
     public LocalDateTime getCreatedAt() {

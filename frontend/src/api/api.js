@@ -32,6 +32,7 @@ export const register = (data) => API.post('/auth/register', data);
 export const login    = (data) => API.post('/auth/login', data);
 export const getMyProfile = () => API.get('/auth/me');
 export const updateMyProfile = (data) => API.put('/auth/me', data);
+export const changePassword = (data) => API.post('/auth/change-password', data);
 
 // ---- Courses ----
 export const getCourses      = ()         => API.get('/courses');
@@ -44,13 +45,20 @@ export const deleteCourse    = (id)       => API.delete(`/courses/${id}`);
 export const addToCart = (studentId, courseId) => API.post(`/v1/cart/add?studentId=${studentId}&courseId=${courseId}`);
 export const getCart = (studentId) => API.get(`/v1/cart?studentId=${studentId}`);
 export const removeFromCart = (studentId, courseId) => API.delete(`/v1/cart/remove?studentId=${studentId}&courseId=${courseId}`);
-export const checkoutCart = (studentId) => API.post(`/v1/cart/checkout?studentId=${studentId}`);
+export const checkoutCart = (studentId, coupon) => {
+  const url = coupon 
+    ? `/v1/cart/checkout?studentId=${studentId}&coupon=${encodeURIComponent(coupon)}`
+    : `/v1/cart/checkout?studentId=${studentId}`;
+  return API.post(url);
+};
 export const verifyCartPayment = (payload) => API.post('/v1/cart/verify', payload);
 
 // ---- Enrollments ----
 export const enroll                  = (studentId, courseId) => API.post(`/enrollments?studentId=${studentId}&courseId=${courseId}`);
 export const getStudentEnrollments   = (studentId)           => API.get(`/enrollments/student/${studentId}`);
 export const getAllEnrollments        = ()                    => API.get('/enrollments/all');
+export const exportEnrollments       = (format)              => API.get(`/enrollments/export?format=${format}`, { responseType: 'blob' });
+export const getEnrollmentReceipt   = (enrollmentId)        => API.get(`/enrollments/${enrollmentId}/receipt`, { responseType: 'blob' });
 
 // ---- Payments (Razorpay demo) ----
 export const createRazorpayOrder = (studentId, courseId) =>

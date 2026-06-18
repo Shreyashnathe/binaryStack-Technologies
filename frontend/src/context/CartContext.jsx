@@ -24,6 +24,7 @@ export function CartProvider({ children }) {
           console.error('Failed to fetch cart items:', err);
         });
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCartItems([]);
     }
   }, [user]);
@@ -79,6 +80,7 @@ export function CartProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useCart = () => {
   const ctx = useContext(CartContext);
   if (!ctx) throw new Error('useCart must be used inside CartProvider');

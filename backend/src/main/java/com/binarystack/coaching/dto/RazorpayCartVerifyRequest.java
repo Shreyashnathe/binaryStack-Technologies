@@ -61,4 +61,14 @@ public class RazorpayCartVerifyRequest {
     public void setRazorpaySignature(String razorpaySignature) {
         this.razorpaySignature = razorpaySignature;
     }
+
+    private String coupon;
+
+    public String getCoupon() {
+        return coupon;
+    }
+
+    public void setCoupon(String coupon) {
+        this.coupon = coupon;
+    }
 }

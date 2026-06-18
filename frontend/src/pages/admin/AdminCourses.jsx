@@ -3,7 +3,7 @@ import Layout from '../../components/Layout';
 import CourseCard from '../../components/CourseCard';
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/api';
 
-const emptyForm = { title: '', description: '', price: '' };
+const emptyForm = { title: '', description: '', price: '', durationDays: '', totalHours: '' };
 
 export default function AdminCourses() {
   const [courses, setCourses]   = useState([]);
@@ -20,7 +20,7 @@ export default function AdminCourses() {
   useEffect(() => { fetchCourses(); }, []);
 
   const openCreate = () => { setForm(emptyForm); setEditId(null); setError(''); setShowModal(true); };
-  const openEdit   = (c) => { setForm({ title: c.title, description: c.description, price: c.price }); setEditId(c.id); setError(''); setShowModal(true); };
+  const openEdit   = (c) => { setForm({ title: c.title, description: c.description, price: c.price, durationDays: c.durationDays || '', totalHours: c.totalHours || '' }); setEditId(c.id); setError(''); setShowModal(true); };
   const closeModal  = () => { setShowModal(false); setError(''); };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -30,7 +30,12 @@ export default function AdminCourses() {
     setError('');
     setSubmitting(true);
     try {
-      const payload = { ...form, price: parseFloat(form.price) || 0 };
+      const payload = { 
+        ...form, 
+        price: parseFloat(form.price) || 0,
+        durationDays: form.durationDays ? parseInt(form.durationDays) : null,
+        totalHours: form.totalHours ? parseInt(form.totalHours) : null
+      };
       if (editId) await updateCourse(editId, payload);
       else        await createCourse(payload);
       closeModal();
@@ -101,6 +106,18 @@ export default function AdminCourses() {
                 <label className="label">Price (₹)</label>
                 <input name="price" type="number" min="0" step="0.01" className="input-field"
                   placeholder="0 for free" value={form.price} onChange={handleChange} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Duration (Days)</label>
+                  <input name="durationDays" type="number" min="1" className="input-field"
+                    placeholder="e.g. 30" value={form.durationDays} onChange={handleChange} required />
+                </div>
+                <div>
+                  <label className="label">Total Hours</label>
+                  <input name="totalHours" type="number" min="1" className="input-field"
+                    placeholder="e.g. 40" value={form.totalHours} onChange={handleChange} required />
+                </div>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={closeModal} className="btn-secondary flex-1">Cancel</button>

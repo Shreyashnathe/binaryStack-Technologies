@@ -1,10 +1,16 @@
 package com.binarystack.coaching.service;
 
 import com.binarystack.coaching.dto.AiResponse;
+import com.binarystack.coaching.entity.User;
+import com.binarystack.coaching.entity.Enrollment;
+import com.binarystack.coaching.repository.UserRepository;
+import com.binarystack.coaching.repository.EnrollmentRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
@@ -26,6 +32,8 @@ public class AiService {
     private final List<String> fallbackModels;
     private final String httpReferer;
     private final String appTitle;
+    private final UserRepository userRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     public AiService(
             @Value("${openrouter.api-key}") String apiKey,
@@ -34,7 +42,9 @@ public class AiService {
             @Value("${openrouter.max-completion-tokens:512}") long maxCompletionTokens,
             @Value("${openrouter.fallback-models:}") String fallbackModelsCsv,
             @Value("${openrouter.http-referer:http://localhost:8080}") String httpReferer,
-            @Value("${openrouter.app-title:BinaryStack-Coaching}") String appTitle
+            @Value("${openrouter.app-title:BinaryStack-Coaching}") String appTitle,
+            UserRepository userRepository,
+            EnrollmentRepository enrollmentRepository
     ) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("openrouter.api-key is not configured. Set OPENROUTER_API_KEY in system environment variables.");
@@ -53,6 +63,8 @@ public class AiService {
                 .toList();
         this.httpReferer = httpReferer;
         this.appTitle = appTitle;
+        this.userRepository = userRepository;
+        this.enrollmentRepository = enrollmentRepository;
     }
 
     /**
@@ -60,7 +72,50 @@ public class AiService {
      */
     public AiResponse ask(String query) {
         log.info("AI query received: {}", query);
-        String prompt = "You are a concise programming tutor. Answer briefly. " + query;
+        
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = (auth != null && auth.isAuthenticated()) ? auth.getName() : null;
+        
+        User user = null;
+        if (email != null && !email.equals("anonymousUser") && !email.isBlank()) {
+            user = userRepository.findByEmail(email).orElse(null);
+        }
+        
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append("You are a concise programming tutor. Answer briefly.\n");
+        
+        if (user != null && user.getRole() == com.binarystack.coaching.enums.Role.STUDENT) {
+            promptBuilder.append("Student Profile Context:\n")
+                    .append("- Name: ").append(user.getName()).append("\n");
+            if (user.getCity() != null && !user.getCity().isBlank()) {
+                promptBuilder.append("- City: ").append(user.getCity()).append("\n");
+            }
+            if (user.getEducationLevel() != null && !user.getEducationLevel().isBlank()) {
+                promptBuilder.append("- Education Level: ").append(user.getEducationLevel()).append("\n");
+            }
+            if (user.getTargetRole() != null && !user.getTargetRole().isBlank()) {
+                promptBuilder.append("- Target Role: ").append(user.getTargetRole()).append("\n");
+            }
+            if (user.getBio() != null && !user.getBio().isBlank()) {
+                promptBuilder.append("- Bio: ").append(user.getBio()).append("\n");
+            }
+            
+            List<Enrollment> enrollments = enrollmentRepository.findByStudent(user);
+            if (enrollments != null && !enrollments.isEmpty()) {
+                promptBuilder.append("- Enrolled Courses: ");
+                for (int i = 0; i < enrollments.size(); i++) {
+                    promptBuilder.append(enrollments.get(i).getCourse().getTitle());
+                    if (i < enrollments.size() - 1) {
+                        promptBuilder.append(", ");
+                    }
+                }
+                promptBuilder.append("\n");
+            }
+            promptBuilder.append("Please address the student directly by name and tailor your response to their background (education level, target role, and active courses) where relevant.\n");
+        }
+        
+        promptBuilder.append("\nUser Q: ").append(query);
+        String prompt = promptBuilder.toString();
 
         List<String> modelsToTry = new ArrayList<>();
         modelsToTry.add(model);

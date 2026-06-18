@@ -11,6 +11,7 @@ public class EnrollmentDto {
     private Long courseId;
     private String courseTitle;
     private LocalDateTime enrolledAt;
+    private LocalDateTime expiryDate;
 
     public EnrollmentDto() {
     }
@@ -21,7 +22,8 @@ public class EnrollmentDto {
                          String studentEmail,
                          Long courseId,
                          String courseTitle,
-                         LocalDateTime enrolledAt) {
+                         LocalDateTime enrolledAt,
+                         LocalDateTime expiryDate) {
         this.id = id;
         this.studentId = studentId;
         this.studentName = studentName;
@@ -29,6 +31,7 @@ public class EnrollmentDto {
         this.courseId = courseId;
         this.courseTitle = courseTitle;
         this.enrolledAt = enrolledAt;
+        this.expiryDate = expiryDate;
     }
 
     public Long getId() {
@@ -85,5 +88,13 @@ public class EnrollmentDto {
 
     public void setEnrolledAt(LocalDateTime enrolledAt) {
         this.enrolledAt = enrolledAt;
+    }
+
+    public LocalDateTime getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(LocalDateTime expiryDate) {
+        this.expiryDate = expiryDate;
     }
 }

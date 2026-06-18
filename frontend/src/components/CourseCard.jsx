@@ -26,6 +26,22 @@ export default function CourseCard({
         {course.description || 'No description provided.'}
       </p>
 
+      {/* Access duration and total hours metadata */}
+      {(course.totalHours || course.durationDays) && (
+        <div className="flex flex-wrap items-center gap-2 mt-3 text-[10px] font-bold">
+          {course.totalHours && (
+            <span className="bg-slate-50 border border-slate-100 text-primary-700 px-2 py-0.5 rounded-md">
+              {course.totalHours} hours
+            </span>
+          )}
+          {course.durationDays && (
+            <span className="bg-slate-50 border border-slate-100 text-indigo-700 px-2 py-0.5 rounded-md">
+              {course.durationDays} days access
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
         <span>ID: {course.id}</span>
         <span>{Number(course.price) === 0 ? 'Open Access' : 'Paid Program'}</span>

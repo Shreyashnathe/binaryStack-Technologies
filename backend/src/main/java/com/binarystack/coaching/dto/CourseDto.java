@@ -24,6 +24,14 @@ public class CourseDto {
     @DecimalMin(value = "0.0", message = "Price must be >= 0")
     private BigDecimal price;
 
+    @NotNull(message = "Duration is required")
+    @jakarta.validation.constraints.Min(value = 1, message = "Duration must be at least 1 day")
+    private Integer durationDays;
+
+    @NotNull(message = "Total hours is required")
+    @jakarta.validation.constraints.Min(value = 1, message = "Total hours must be at least 1 hour")
+    private Integer totalHours;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -34,12 +42,16 @@ public class CourseDto {
                      String title,
                      String description,
                      BigDecimal price,
+                     Integer durationDays,
+                     Integer totalHours,
                      LocalDateTime createdAt,
                      LocalDateTime updatedAt) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.price = price;
+        this.durationDays = durationDays;
+        this.totalHours = totalHours;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -74,6 +86,22 @@ public class CourseDto {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public Integer getDurationDays() {
+        return durationDays;
+    }
+
+    public void setDurationDays(Integer durationDays) {
+        this.durationDays = durationDays;
+    }
+
+    public Integer getTotalHours() {
+        return totalHours;
+    }
+
+    public void setTotalHours(Integer totalHours) {
+        this.totalHours = totalHours;
     }
 
     public LocalDateTime getCreatedAt() {
