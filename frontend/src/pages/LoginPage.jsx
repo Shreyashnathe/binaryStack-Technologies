@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { register } from '../api/api';
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
@@ -24,39 +23,10 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
     setError('');
     setGoogleLoading(true);
-    try {
-      const mockEmail = 'googlelearner@gmail.com';
-      const mockPassword = 'GoogleUser@123';
-      
-      // Try registering the mock user first in case they do not exist
-      try {
-        await register({
-          name: 'Google Learner',
-          email: mockEmail,
-          password: mockPassword,
-          phoneNumber: '9876543210',
-          city: 'Pune',
-          educationLevel: 'B.Tech Graduate',
-          targetRole: 'Full Stack Developer',
-          dateOfBirth: '2000-01-01',
-          bio: 'Registered via Google Sign-In.',
-        });
-      } catch (regErr) {
-        // If registration fails because the user already exists, ignore and proceed to login
-        console.log('Google mock user already exists or registration skipped.', regErr);
-      }
-
-      const user = await login(mockEmail, mockPassword);
-      navigate(user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard');
-    } catch (err) {
-      console.error('Google login error', err);
-      setError('Google Authentication failed. Please try again.');
-    } finally {
-      setGoogleLoading(false);
-    }
+    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
   };
 
   return (

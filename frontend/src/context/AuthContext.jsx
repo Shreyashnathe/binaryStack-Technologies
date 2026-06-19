@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useState } from 'react';
-import { login as apiLogin, register as apiRegister } from '../api/api';
+import { login as apiLogin, register as apiRegister, getMyProfile as apiGetProfile } from '../api/api';
 
 const AuthContext = createContext(null);
 
@@ -21,6 +21,20 @@ export function AuthProvider({ children }) {
       const res = await apiLogin({ email, password });
       const userData = res.data;
       localStorage.setItem('token', userData.token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      return userData;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWithToken = async (token) => {
+    setLoading(true);
+    try {
+      localStorage.setItem('token', token);
+      const res = await apiGetProfile();
+      const userData = { ...res.data, token };
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
       return userData;
@@ -73,7 +87,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAdmin, isStudent, syncUserProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithToken, register, logout, isAdmin, isStudent, syncUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

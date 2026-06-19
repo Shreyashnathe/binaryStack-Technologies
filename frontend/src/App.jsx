@@ -17,6 +17,7 @@ import StudentAnnouncements from './pages/student/StudentAnnouncements';
 import StudentSchedule from './pages/student/StudentSchedule';
 import ProfilePage from './pages/ProfilePage';
 import CartPage from './pages/student/CartPage';
+import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler';
 
 // Admin pages
 import AdminDashboard   from './pages/admin/AdminDashboard';
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/"         element={<LandingPage />} />
             <Route path="/login"    element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
 
             {/* Student routes */}
             <Route path="/student/dashboard"   element={<ProtectedRoute role="STUDENT"><StudentDashboard /></ProtectedRoute>} />

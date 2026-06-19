@@ -115,33 +115,10 @@ export default function RegisterPage() {
     setErrors((prev) => ({ ...prev, [name]: err }));
   };
 
-  // Google sign up skip flow on Step 1
-  const handleGoogleSignUp = async () => {
+  const handleGoogleSignUp = () => {
     setError('');
     setGoogleLoading(true);
-    try {
-      const mockEmail = `google_${Math.floor(Math.random() * 100000)}@gmail.com`;
-      const mockPassword = 'GoogleUser@123';
-      
-      await apiRegister({
-        name: 'Google Learner',
-        email: mockEmail,
-        password: mockPassword,
-        phoneNumber: '9876543210',
-        city: 'Pune',
-        educationLevel: 'B.Tech Graduate',
-        targetRole: 'Full Stack Developer',
-        dateOfBirth: '2000-01-01',
-        bio: 'Quick registration via Google Sign-Up.',
-      });
-
-      const user = await login(mockEmail, mockPassword);
-      navigate(user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Google Registration failed. Please try again.');
-    } finally {
-      setGoogleLoading(false);
-    }
+    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
   };
 
   // Submit complete 3-step registration form

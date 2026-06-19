@@ -42,9 +42,9 @@ public class AdminInitializer implements CommandLineRunner {
             admin.setPassword(passwordEncoder.encode(adminPassword));
             admin.setRole(Role.ADMIN);
             userRepository.save(admin);
-            log.info("✅ Admin user seeded: {}", adminEmail);
+            log.info("Admin user seeded: {}", adminEmail);
         } else {
-            log.info("ℹ️  Admin user already exists, skipping seed.");
+            log.info("Admin user already exists, skipping seed.");
         }
     }
 }
