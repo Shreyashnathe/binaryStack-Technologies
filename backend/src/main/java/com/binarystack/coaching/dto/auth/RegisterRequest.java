@@ -13,7 +13,7 @@ public class RegisterRequest {
 
     @NotBlank(message = "Name is required")
     @Size(min = 2, message = "Name must be at least 2 characters")
-    @Pattern(regexp = "^[a-zA-Z0-9 ]+$", message = "Name must not contain special characters")
+    @Pattern(regexp = "^[a-zA-Z0-9 .'-]+$", message = "Name must not contain special characters")
     private String name;
 
     @Email(message = "Invalid email format")

@@ -51,7 +51,7 @@ export default function RegisterPage() {
     if (name === 'name') {
       if (value.trim().length < 2) {
         err = 'Name must be at least 2 characters';
-      } else if (!/^[a-zA-Z0-9 ]+$/.test(value)) {
+      } else if (!/^[a-zA-Z0-9 .'-]+$/.test(value)) {
         err = 'Name must not contain special characters';
       }
     } else if (name === 'phoneNumber') {
