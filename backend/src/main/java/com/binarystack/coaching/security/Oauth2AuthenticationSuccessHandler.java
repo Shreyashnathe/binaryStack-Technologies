@@ -75,6 +75,7 @@ public class Oauth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             user.setEducationLevel("");
             user.setTargetRole("");
             user.setBio("Registered via Google OAuth2.");
+            user.setPasswordSet(false);
             userRepository.save(user);
         } else {
             log.info("OAuth2 user already exists. Logging in: {}", normalizedEmail);

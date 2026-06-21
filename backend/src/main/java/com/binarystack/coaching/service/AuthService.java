@@ -123,10 +123,16 @@ public class AuthService {
     @Transactional
     public void changePassword(String email, String currentPassword, String newPassword) {
         User user = findByEmailOrThrow(email);
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new BadRequestException("Incorrect current password");
+        if (user.isPasswordSet()) {
+            if (currentPassword == null || currentPassword.trim().isEmpty()) {
+                throw new BadRequestException("Current password is required");
+            }
+            if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+                throw new BadRequestException("Incorrect current password");
+            }
         }
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordSet(true);
         userRepository.save(user);
         log.info("Password changed successfully for user: {}", user.getEmail());
     }
@@ -149,7 +155,7 @@ public class AuthService {
     }
 
     private UserProfileResponse toProfileResponse(User user) {
-        return new UserProfileResponse(
+        UserProfileResponse response = new UserProfileResponse(
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
@@ -162,5 +168,7 @@ public class AuthService {
                 user.getDateOfBirth(),
                 user.getCreatedAt()
         );
+        response.setPasswordSet(user.isPasswordSet());
+        return response;
     }
 }

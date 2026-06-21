@@ -80,6 +80,7 @@ export function AuthProvider({ children }) {
         targetRole: profile?.targetRole ?? prev.targetRole,
         bio: profile?.bio ?? prev.bio,
         dateOfBirth: profile?.dateOfBirth ?? prev.dateOfBirth,
+        passwordSet: profile?.passwordSet ?? prev.passwordSet,
       };
       localStorage.setItem('user', JSON.stringify(nextUser));
       return nextUser;

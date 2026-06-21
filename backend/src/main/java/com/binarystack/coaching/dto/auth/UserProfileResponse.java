@@ -16,6 +16,7 @@ public class UserProfileResponse {
     private String bio;
     private LocalDate dateOfBirth;
     private LocalDateTime createdAt;
+    private boolean passwordSet;
 
     public UserProfileResponse() {
     }
@@ -130,5 +131,13 @@ public class UserProfileResponse {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isPasswordSet() {
+        return passwordSet;
+    }
+
+    public void setPasswordSet(boolean passwordSet) {
+        this.passwordSet = passwordSet;
     }
 }

@@ -670,9 +670,9 @@ export default function LandingPage() {
           <div className="space-y-4">
             <h4 className="text-slate-900 font-bold text-xs uppercase tracking-wide">Contact Us</h4>
             <ul className="space-y-2 text-xs text-slate-500 leading-relaxed font-semibold">
-              <li>✉ info@binarystack.tech</li>
-              <li>☎ +91 98765 43210</li>
-              <li>📍 BinaryStack Tech Park, Pune</li>
+              <li>Email: info@binarystack.tech</li>
+              <li>Phone: +91 98765 43210</li>
+              <li>Location: BinaryStack Tech Park, Pune</li>
             </ul>
           </div>
 

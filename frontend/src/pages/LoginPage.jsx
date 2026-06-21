@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showForgotInfo, setShowForgotInfo] = useState(false);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -110,6 +111,34 @@ export default function LoginPage() {
               </div>
             )}
 
+            {showForgotInfo && (
+              <div className="bg-amber-50 border border-amber-200 text-slate-700 text-xs p-4 rounded-xl leading-relaxed animate-fade-in space-y-2 relative text-left">
+                <button 
+                  onClick={() => setShowForgotInfo(false)} 
+                  className="absolute top-2 right-2.5 text-slate-400 hover:text-slate-600 font-bold text-sm"
+                  type="button"
+                >
+                  ×
+                </button>
+                <div className="flex gap-2">
+                  <div className="space-y-1.5 w-full">
+                    <h4 className="font-semibold text-slate-900 flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V9a6 6 0 00-12 0v10a2 2 0 002 2z" />
+                      </svg>
+                      Account Access Instructions
+                    </h4>
+                    <p className="text-slate-600">
+                      • <strong>Registered via Google?</strong> Click the <strong>Sign in with Google</strong> button below. You can set a password in your <strong>Profile &gt; Security</strong> settings screen after logging in.
+                    </p>
+                    <p className="text-slate-600">
+                      • <strong>Registered via email?</strong> Please contact your portal administrator to reset your credentials.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="label" htmlFor="login-email">Email Address</label>
@@ -129,7 +158,13 @@ export default function LoginPage() {
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="label m-0" htmlFor="login-password">Password</label>
-                  <span className="text-[11px] font-bold text-primary-600 hover:text-primary-800 transition-colors cursor-pointer select-none">
+                  <span 
+                    onClick={() => {
+                      setError('');
+                      setShowForgotInfo(true);
+                    }}
+                    className="text-[11px] font-bold text-primary-600 hover:text-primary-800 transition-colors cursor-pointer select-none"
+                  >
                     Forgot Password?
                   </span>
                 </div>

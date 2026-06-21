@@ -1,12 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import { 
   getMyProfile, 
   updateMyProfile, 
-  changePassword, 
-  getStudentEnrollments, 
-  getDashboardStats, 
-  getAdminSessions 
+  changePassword 
 } from '../api/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -39,17 +36,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   
-  // Tab control state (Default is Overview)
-  const [activeTab, setActiveTab] = useState('overview');
-  
-  // Local avatar photo upload preview
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const fileInputRef = useRef(null);
-
-  // Statistics states
-  const [studentEnrollmentsCount, setStudentEnrollmentsCount] = useState(0);
-  const [adminStats, setAdminStats] = useState(null);
-  const [adminSessionsCount, setAdminSessionsCount] = useState(0);
+  // Tab control state (Default is Personal Info)
+  const [activeTab, setActiveTab] = useState('personal');
 
   // Security password change states
   const [securityForm, setSecurityForm] = useState({
@@ -88,7 +76,7 @@ export default function ProfilePage() {
 
   const showToast = (msg) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 3000);
+    setTimeout(() => setToast(''), 4000);
   };
 
   const getMissingFields = () => {
@@ -174,14 +162,9 @@ export default function ProfilePage() {
     return 'Weak';
   };
 
-  // On mount: fetch profile, load avatar from localStorage, and load stats depending on role
+  // Fixed useEffect dependency array to prevent infinite re-fetching loop
   useEffect(() => {
     if (!user) return;
-
-    const storedAvatar = localStorage.getItem(`avatar_${user.userId}`);
-    if (storedAvatar) {
-      setAvatarUrl(storedAvatar);
-    }
 
     getMyProfile()
       .then((res) => {
@@ -204,22 +187,8 @@ export default function ProfilePage() {
       })
       .finally(() => setLoading(false));
 
-    // Role specific stats fetching
-    if (user.role === 'STUDENT') {
-      getStudentEnrollments(user.userId)
-        .then((res) => {
-          setStudentEnrollmentsCount(res.data?.length || 0);
-        })
-        .catch(console.error);
-    } else if (user.role === 'ADMIN') {
-      Promise.all([getDashboardStats(), getAdminSessions()])
-        .then(([statsRes, sessionsRes]) => {
-          setAdminStats(statsRes.data);
-          setAdminSessionsCount(sessionsRes.data?.length || 0);
-        })
-        .catch(console.error);
-    }
-  }, [user, syncUserProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.userId]); // Safe dependency to prevent continuous execution
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -235,31 +204,6 @@ export default function ProfilePage() {
     setErrors((prev) => ({ ...prev, [name]: err }));
   };
 
-  // Avatar click and file reader load
-  const triggerAvatarInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleAvatarChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        showToast('Photo must be less than 2MB.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        setAvatarUrl(reader.result);
-        localStorage.setItem(`avatar_${user?.userId}`, reader.result);
-        showToast('Profile photo updated.');
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Section Save profiles
   const handleSaveInfo = async (e, section) => {
     e.preventDefault();
     setErrors({});
@@ -326,7 +270,7 @@ export default function ProfilePage() {
     try {
       const res = await updateMyProfile(payload);
       syncUserProfile(res.data);
-      showToast('Profile information saved.');
+      showToast('Profile information saved successfully.');
     } catch (err) {
       if (err.response?.data?.data && typeof err.response.data.data === 'object') {
         setErrors(err.response.data.data);
@@ -337,7 +281,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Security password handler
   const handleSecurityChange = (e) => {
     const { name, value } = e.target;
     setSecurityForm((prev) => {
@@ -375,7 +318,7 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       await changePassword({
-        currentPassword: securityForm.currentPassword,
+        currentPassword: securityForm.currentPassword || '',
         newPassword: securityForm.newPassword,
       });
       showToast('Password changed successfully.');
@@ -385,6 +328,8 @@ export default function ProfilePage() {
         confirmNewPassword: '',
       });
       setPasswordStrength('');
+      // Sync passwordSet field in user auth context
+      syncUserProfile({ ...user, passwordSet: true });
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to change password. Make sure current is correct.');
     } finally {
@@ -392,613 +337,353 @@ export default function ProfilePage() {
     }
   };
 
-  const getInitials = (fullName) => {
-    if (!fullName) return '?';
-    return fullName
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .substring(0, 2)
-      .toUpperCase();
-  };
-
   return (
     <Layout>
-      
-      {/* Toast Feedback Alerts */}
+      {/* Toast Feedback Alert */}
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-white/90 backdrop-blur-md border border-slate-200 text-slate-800 px-5 py-3.5 rounded-2xl shadow-2xl animate-fade-in text-xs font-bold flex items-center gap-3">
-          <span className="w-2 h-2 bg-primary-600 rounded-full animate-pulse" />
-          {toast}
+        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-lg border border-slate-800 text-xs font-semibold flex items-center gap-2.5 animate-fade-in">
+          <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          <span>{toast}</span>
         </div>
       )}
 
-      {/* Main Profile container */}
-      <div className="max-w-5xl mx-auto space-y-8 py-4">
-        
-        {/* Missing details Warning Banner */}
-        {missingFields.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-5 flex gap-4 text-left animate-fade-in shadow-sm">
-            <div className="w-10 h-10 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center shrink-0 text-lg font-bold">!</div>
-            <div className="space-y-1">
-              <h3 className="font-extrabold text-sm text-slate-900">Complete Your Profile Details</h3>
-              <p className="text-xs text-amber-700 leading-relaxed">
-                Your profile is not fully complete. Please provide your: 
-                <span className="font-bold bg-amber-100/60 px-1.5 py-0.5 rounded text-amber-900 ml-1.5">{missingFields.join(', ')}</span>.
-              </p>
-              <button 
-                onClick={() => {
-                  const targetTab = (missingFields.includes('Name') || missingFields.includes('Phone Number') || missingFields.includes('City') || missingFields.includes('Date of Birth')) 
-                    ? 'personal' 
-                    : 'academic';
-                  setActiveTab(targetTab);
-                }} 
-                className="text-xs font-bold text-primary-700 hover:text-primary-800 underline block pt-1.5 transition-colors"
-              >
-                Configure missing details now →
-              </button>
-            </div>
-          </div>
-        )}
 
-        {/* Profile Header and Hero Banner */}
-        <section className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden relative">
-          {/* Cover gradient banner */}
-          <div className="relative w-full h-36 sm:h-48 bg-gradient-to-r from-primary-600 via-violet-700 to-indigo-800">
-            <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:16px_16px]" />
-          </div>
 
-          {/* User Meta Row (Flex Container with Profile Overlapping picture) */}
-          <div className="px-6 pb-6 pt-4 text-left relative flex flex-col md:flex-row items-center md:items-end justify-between gap-6">
-            
-            {/* Avatar block with absolute overlap position relative to row */}
-            <div className="flex flex-col md:flex-row items-center md:items-end gap-5 -mt-16 md:-mt-20 z-10">
-              
-              {/* Picture wrapper */}
-              <div 
-                onClick={triggerAvatarInput}
-                className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl border-4 border-white bg-slate-100 shadow-xl overflow-hidden cursor-pointer group flex items-center justify-center relative hover:scale-[1.02] active:scale-95 transition-all"
-                title="Click to update photo"
-              >
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-3xl font-black text-slate-700">{getInitials(form.name || user?.name)}</span>
-                )}
-                
-                {/* Camera Hover Overlay */}
-                <div className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[10px] font-bold">
-                  <svg className="w-6 h-6 mb-1 text-slate-200" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15a2.25 2.25 0 002.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-                  </svg>
-                  <span>Update Photo</span>
-                </div>
+      <div className="space-y-8 px-1">
+
+        {/* Beautiful Glassmorphic Profile Banner */}
+        <section className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 rounded-3xl p-8 relative overflow-hidden text-left shadow-xl">
+          {/* Decorative background glow elements */}
+          <div className="absolute top-[-40%] right-[-10%] w-[350px] h-[350px] bg-primary-500/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-[-40%] left-[-10%] w-[350px] h-[350px] bg-indigo-500/15 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:16px_16px]" />
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={user?.role === 'ADMIN' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 px-3 py-1 rounded-full text-xs font-bold' : 'bg-primary-500/10 text-primary-400 border border-primary-500/25 px-3 py-1 rounded-full text-xs font-bold'}>
+                  {user?.role === 'ADMIN' ? 'Administrator' : 'Student Partner'}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">Verified Account</span>
               </div>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleAvatarChange} 
-                accept="image/*" 
-                className="hidden" 
-              />
+              
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-none">
+                {form.name || user?.name}
+              </h1>
 
-              {/* Title & Badge */}
-              <div className="space-y-1.5 text-center md:text-left pb-2">
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
-                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{form.name || user?.name}</h1>
-                  <span className={user?.role === 'ADMIN' ? 'badge-admin font-bold' : 'badge-student font-bold'}>
-                    {user?.role === 'ADMIN' ? 'Administrator' : 'Student Partner'}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 font-semibold flex items-center justify-center md:justify-start gap-1">
-                  <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                   {user?.email}
-                  <span className="text-[10px] text-slate-400 font-bold ml-1.5">• Joined {formatDate(createdAt)}</span>
-                </p>
+                </span>
+                <span className="text-slate-700">•</span>
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Joined {formatDate(createdAt)}
+                </span>
               </div>
-
             </div>
 
-            {/* Profile completion strength progress card */}
-            <div className="w-full md:w-60 bg-slate-50 border border-slate-200/60 p-4 rounded-2xl text-left space-y-2 z-10 self-stretch md:self-end">
-              <div className="flex justify-between items-center text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+            {/* Config progress block */}
+            <div className="bg-slate-800/40 border border-slate-700/50 backdrop-blur-md p-5 rounded-2xl w-full md:w-64 space-y-3">
+              <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 <span>Setup Progress</span>
-                <span className="text-primary-700">{profileCompletion}%</span>
+                <span className="text-primary-400 font-extrabold">{profileCompletion}%</span>
               </div>
-              <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-primary-600 to-indigo-600 rounded-full transition-all duration-500" 
+                  className="h-full bg-gradient-to-r from-primary-500 to-indigo-500 rounded-full transition-all duration-500" 
                   style={{ width: `${profileCompletion}%` }} 
                 />
               </div>
-              <p className="text-[10px] text-slate-500 font-bold leading-normal">
-                {missingFields.length === 0 ? '✓ Your profile is fully configured' : `${missingFields.length} profile parameter(s) missing`}
+              <p className="text-[10px] text-slate-400 leading-normal">
+                {missingFields.length === 0 
+                  ? '✓ All profile parameters are fully configured' 
+                  : `${missingFields.length} recommended parameter(s) missing`}
               </p>
             </div>
-
           </div>
         </section>
 
-        {/* Tab Selection Menu */}
-        <nav className="flex justify-center md:justify-start border-b border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-none gap-2">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`py-3.5 px-5 text-xs font-bold transition-all flex items-center gap-2 border-b-2 -mb-[2px] ${
-              activeTab === 'overview' 
-                ? 'border-primary-600 text-primary-700' 
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
-            </svg>
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('personal')}
-            className={`py-3.5 px-5 text-xs font-bold transition-all flex items-center gap-2 border-b-2 -mb-[2px] ${
-              activeTab === 'personal' 
-                ? 'border-primary-600 text-primary-700' 
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            Personal Info
-          </button>
+        {/* Sidebar + Panel content grid styled exactly like other sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
-          {user?.role === 'STUDENT' && (
-            <button
-              onClick={() => setActiveTab('academic')}
-              className={`py-3.5 px-5 text-xs font-bold transition-all flex items-center gap-2 border-b-2 -mb-[2px] ${
-                activeTab === 'academic' 
-                  ? 'border-primary-600 text-primary-700' 
-                  : 'border-transparent text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-              </svg>
-              Academic Info
-            </button>
-          )}
+          {/* Navigation Sidebar */}
+          <nav className="flex lg:flex-col overflow-x-auto whitespace-nowrap lg:whitespace-normal border-b lg:border-b-0 lg:border-r border-slate-200 pb-3 lg:pb-0 lg:pr-6 gap-2">
+            {[
+              { id: 'personal', label: 'Personal Info', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+              ...(user?.role === 'STUDENT' ? [{ id: 'academic', label: 'Academic Info', icon: 'M12 14l9-5-9-5-9 5 9 5z' }] : []),
+              { id: 'security', label: 'Security', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`sidebar-link ${activeTab === tab.id ? 'active' : ''} text-left w-full`}
+              >
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
+                </svg>
+                {tab.label}
+              </button>
+            ))}
+          </nav>
 
-          <button
-            onClick={() => setActiveTab('security')}
-            className={`py-3.5 px-5 text-xs font-bold transition-all flex items-center gap-2 border-b-2 -mb-[2px] ${
-              activeTab === 'security' 
-                ? 'border-primary-600 text-primary-700' 
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            Security
-          </button>
-        </nav>
+          {/* Tab Pages */}
+          <div className="lg:col-span-3">
+            {loading ? (
+              <div className="text-slate-600 animate-pulse py-12 text-center font-medium">Loading profile details...</div>
+            ) : (
+              <>
 
-        {/* Tab Panels */}
-        {loading ? (
-          <div className="text-center py-20 text-slate-400 animate-pulse font-semibold">
-            Loading profile information...
-          </div>
-        ) : (
-          <div className="w-full">
-            
-            {/* Tab 1: Overview */}
-            {activeTab === 'overview' && (
-              <div className="animate-slide-in space-y-6 text-left">
-                
-                {/* Stats cards grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                  
-                  {user?.role === 'STUDENT' ? (
-                    <>
-                      <article className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:border-primary-300 hover:shadow-md transition-all duration-200">
-                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                          </svg>
-                        </div>
-                        <div className="mt-4">
-                          <p className="text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">Enrolled Courses</p>
-                          <p className="text-2xl font-black text-slate-900 mt-1">{studentEnrollmentsCount}</p>
-                        </div>
-                      </article>
 
-                      <article className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:border-purple-300 hover:shadow-md transition-all duration-200">
-                        <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 00-2 2z" />
-                          </svg>
-                        </div>
-                        <div className="mt-4">
-                          <p className="text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">Interactive Sessions</p>
-                          <p className="text-2xl font-black text-slate-900 mt-1">12</p>
-                        </div>
-                      </article>
-
-                      <article className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all duration-200">
-                        <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                          </svg>
-                        </div>
-                        <div className="mt-4">
-                          <p className="text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">Credentials Earned</p>
-                          <p className="text-2xl font-black text-slate-900 mt-1">
-                            {profileCompletion >= 80 ? 1 : 0}
-                          </p>
-                        </div>
-                      </article>
-
-                      <article className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:border-cyan-300 hover:shadow-md transition-all duration-200">
-                        <div className="w-9 h-9 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center font-bold text-sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.969 0 1.371 1.24.588 1.81l-3.97 2.88a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.971-2.88a1 1 0 00-1.175 0l-3.97 2.88c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118l-3.97-2.88c-.783-.57-.38-1.81.588-1.81h4.906a1 1 0 00.951-.69l1.519-4.674z" />
-                          </svg>
-                        </div>
-                        <div className="mt-4">
-                          <p className="text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">Reviews Contributed</p>
-                          <p className="text-2xl font-black text-slate-900 mt-1">2</p>
-                        </div>
-                      </article>
-                    </>
-                  ) : (
-                    <>
-                      <article className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:border-blue-300 hover:shadow-md transition-all duration-200">
-                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                          </svg>
-                        </div>
-                        <div className="mt-4">
-                          <p className="text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">Active Cohort</p>
-                          <p className="text-2xl font-black text-slate-900 mt-1">{adminStats?.totalStudents ?? 0} Students</p>
-                        </div>
-                      </article>
-
-                      <article className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:border-purple-300 hover:shadow-md transition-all duration-200">
-                        <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                          </svg>
-                        </div>
-                        <div className="mt-4">
-                          <p className="text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">Active Courses</p>
-                          <p className="text-2xl font-black text-slate-900 mt-1">{adminStats?.totalCourses ?? 0}</p>
-                        </div>
-                      </article>
-
-                      <article className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all duration-200">
-                        <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 8h6m-6 4h6m-6 4h6m1 2.25l-4-4-4 4V5a2 2 0 012-2h4a2 2 0 012 2v13.25z" />
-                          </svg>
-                        </div>
-                        <div className="mt-4">
-                          <p className="text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">Estimated Gross Revenue</p>
-                          <p className="text-2xl font-black text-slate-900 mt-1">
-                            ₹{(adminStats?.totalEnrollments ?? 0) * 5999}
-                          </p>
-                        </div>
-                      </article>
-
-                      <article className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:border-cyan-300 hover:shadow-md transition-all duration-200">
-                        <div className="w-9 h-9 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center font-bold text-sm">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <div className="mt-4">
-                          <p className="text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">Active Mentoring Sessions</p>
-                          <p className="text-2xl font-black text-slate-900 mt-1">{adminSessionsCount}</p>
-                        </div>
-                      </article>
-                    </>
-                  )}
-
-                </div>
-
-                {/* Quick Profile Summary Card & Professional bio */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  
-                  {/* Summary Box */}
-                  <div className="md:col-span-1 bg-white border border-slate-200 rounded-3xl p-6 space-y-4">
-                    <h3 className="text-slate-900 font-extrabold text-sm border-b border-slate-100 pb-3 uppercase tracking-wider text-slate-400">Quick Profile</h3>
-                    
-                    <div className="space-y-3.5 text-xs font-semibold text-slate-700">
-                      <div>
-                        <span className="block text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">Phone Number</span>
-                        <span>{form.phoneNumber || <span className="text-slate-400 italic">Not set</span>}</span>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">City location</span>
-                        <span>{form.city || <span className="text-slate-400 italic">Not set</span>}</span>
-                      </div>
-                      
-                      {user?.role === 'STUDENT' && (
-                        <>
-                          <div>
-                            <span className="block text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">Education Level</span>
-                            <span>{form.educationLevel || <span className="text-slate-400 italic">Not set</span>}</span>
-                          </div>
-                          <div>
-                            <span className="block text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">Target Job Role</span>
-                            <span>{form.targetRole || <span className="text-slate-400 italic">Not set</span>}</span>
-                          </div>
-                          <div>
-                            <span className="block text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">Date of Birth</span>
-                            <span>{formatDate(form.dateOfBirth)}</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Bio statement */}
-                  <div className="md:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 space-y-3">
-                    <h3 className="text-slate-900 font-extrabold text-sm border-b border-slate-100 pb-3 uppercase tracking-wider text-slate-400">Professional Bio</h3>
-                    <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                      {form.bio || 'Provide a professional bio summary in the Personal Info tab to present yourself to peers and system instructors.'}
-                    </p>
-                  </div>
-
-                </div>
-
-              </div>
-            )}
-
-            {/* Tab 2: Personal Info */}
+            {/* 2. Personal Info panel wrapped in standard card class */}
             {activeTab === 'personal' && (
-              <div className="animate-slide-in">
-                <section className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 text-left shadow-sm">
-                  <div className="border-b border-slate-100 pb-4 mb-6">
-                    <h2 className="text-lg font-extrabold text-slate-900">Personal Configurations</h2>
-                    <p className="text-slate-500 text-xs mt-1">Manage basic personal and identification configurations. All marked fields are mandatory.</p>
-                  </div>
+              <section className="card text-left animate-fade-in">
+                <div className="border-b border-slate-200 pb-3 mb-5">
+                  <h2 className="text-lg font-semibold text-slate-900">Personal Details</h2>
+                  <p className="text-slate-500 text-xs mt-0.5">Update personal metadata to maintain complete configurations.</p>
+                </div>
 
-                  <form onSubmit={(e) => handleSaveInfo(e, 'personal')} className="space-y-5">
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div>
-                        <label className="label">Full Name *</label>
-                        <input
-                          name="name"
-                          required
-                          className={`input-field ${errors.name ? 'border-red-500 ring-2 ring-red-500/10' : 'hover:border-slate-400'}`}
-                          value={form.name}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                        />
-                        {errors.name && <p className="text-red-500 text-[10px] font-bold mt-1.5">{errors.name}</p>}
-                      </div>
-
-                      <div>
-                        <label className="label">Email Address (Verified)</label>
-                        <div className="relative">
-                          <input
-                            className="input-field bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed font-semibold"
-                            value={user?.email || ''}
-                            disabled
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Verified</span>
-                        </div>
-                      </div>
+                <form onSubmit={(e) => handleSaveInfo(e, 'personal')} className="space-y-4">
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Full Name *</label>
+                      <input
+                        name="name"
+                        required
+                        type="text"
+                        placeholder="e.g. John Doe"
+                        className={`input-field ${errors.name ? 'border-red-500 ring-2 ring-red-500/10' : ''}`}
+                        value={form.name}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      {errors.name && <p className="text-red-500 text-[10px] font-semibold mt-1">{errors.name}</p>}
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div>
-                        <label className="label">Phone Number *</label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">+91</span>
-                          <input
-                            name="phoneNumber"
-                            required
-                            type="tel"
-                            maxLength={16}
-                            placeholder="9876543210"
-                            className={`input-field pl-12 ${errors.phoneNumber ? 'border-red-500 ring-2 ring-red-500/10' : 'hover:border-slate-400'}`}
-                            value={form.phoneNumber}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                          />
-                        </div>
-                        {errors.phoneNumber && <p className="text-red-500 text-[10px] font-bold mt-1.5">{errors.phoneNumber}</p>}
-                      </div>
-
-                      <div>
-                        <label className="label">City *</label>
-                        <input
-                          name="city"
-                          required
-                          placeholder="e.g. Pune"
-                          className={`input-field ${errors.city ? 'border-red-500 ring-2 ring-red-500/10' : 'hover:border-slate-400'}`}
-                          value={form.city}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                        />
-                        {errors.city && <p className="text-red-500 text-[10px] font-bold mt-1.5">{errors.city}</p>}
-                      </div>
-                    </div>
-
-                    {user?.role === 'STUDENT' && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                          <label className="label">Date of Birth *</label>
-                          <input
-                            name="dateOfBirth"
-                            type="date"
-                            max={maxDob}
-                            className={`input-field ${errors.dateOfBirth ? 'border-red-500 ring-2 ring-red-500/10' : 'hover:border-slate-400'}`}
-                            value={form.dateOfBirth || ''}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                          />
-                          {errors.dateOfBirth && <p className="text-red-500 text-[10px] font-bold mt-1.5">{errors.dateOfBirth}</p>}
-                          <p className="text-[10px] text-slate-400 font-bold mt-1">Coaching accounts are only available to learners age 15 or older.</p>
-                        </div>
-                      </div>
-                    )}
 
                     <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <label className="label m-0">Short Statement / Bio</label>
-                        <span className="text-[10px] font-bold text-slate-400">{form.bio?.length || 0}/400 chars</span>
+                      <label className="label">Email Address (Verified)</label>
+                      <div className="relative">
+                        <input
+                          type="email"
+                          disabled
+                          className="input-field bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed font-medium"
+                          value={user?.email || ''}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Verified</span>
                       </div>
-                      <textarea
-                        name="bio"
-                        rows={4}
-                        maxLength={400}
-                        className={`input-field resize-none ${errors.bio ? 'border-red-500' : 'hover:border-slate-400'}`}
-                        placeholder="Tell cohort instructors about your background, career interests, and learning objectives..."
-                        value={form.bio || ''}
-                        onChange={handleChange}
-                      />
-                      {errors.bio && <p className="text-red-500 text-[10px] font-bold mt-1.5">{errors.bio}</p>}
                     </div>
-
-                    <button 
-                      type="submit" 
-                      disabled={saving} 
-                      className="btn-primary w-full sm:w-auto py-3 px-6 text-xs font-bold active:scale-[0.98] transition-transform shadow-md"
-                    >
-                      {saving ? 'Saving changes...' : 'Save Personal Details'}
-                    </button>
-
-                  </form>
-                </section>
-              </div>
-            )}
-
-            {/* Tab 3: Academic Info (Student only) */}
-            {activeTab === 'academic' && user?.role === 'STUDENT' && (
-              <div className="animate-slide-in">
-                <section className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 text-left shadow-sm">
-                  <div className="border-b border-slate-100 pb-4 mb-6">
-                    <h2 className="text-lg font-extrabold text-slate-900">Academic & Target Path</h2>
-                    <p className="text-slate-500 text-xs mt-1">Configure your education credentials and career objectives. This helps customize your AI prompt recommendations.</p>
                   </div>
 
-                  <form onSubmit={(e) => handleSaveInfo(e, 'academic')} className="space-y-5">
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div>
-                        <label className="label">Education Level *</label>
-                        <select
-                          name="educationLevel"
-                          required
-                          className={`input-field bg-white ${errors.educationLevel ? 'border-red-500 ring-2 ring-red-500/10' : 'hover:border-slate-400'}`}
-                          value={form.educationLevel || ''}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                        >
-                          <option value="">Select Level</option>
-                          <option value="High School / Secondary">High School / Secondary</option>
-                          <option value="Undergraduate (B.Tech, BCA, BSc)">Undergraduate (B.Tech, BCA, BSc)</option>
-                          <option value="Postgraduate (M.Tech, MCA, MSc)">Postgraduate (M.Tech, MCA, MSc)</option>
-                          <option value="Working Professional / Other">Working Professional / Other</option>
-                        </select>
-                        {errors.educationLevel && <p className="text-red-500 text-[10px] font-bold mt-1.5">{errors.educationLevel}</p>}
-                      </div>
-
-                      <div>
-                        <label className="label">Target Coding Role *</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Phone Number *</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">+91</span>
                         <input
-                          name="targetRole"
+                          name="phoneNumber"
                           required
-                          placeholder="e.g. Backend Developer"
-                          className={`input-field ${errors.targetRole ? 'border-red-500 ring-2 ring-red-500/10' : 'hover:border-slate-400'}`}
-                          value={form.targetRole || ''}
+                          type="tel"
+                          maxLength={16}
+                          placeholder="9876543210"
+                          className={`input-field pl-12 ${errors.phoneNumber ? 'border-red-500 ring-2 ring-red-500/10' : ''}`}
+                          value={form.phoneNumber}
                           onChange={handleChange}
                           onBlur={handleBlur}
                         />
-                        {errors.targetRole && <p className="text-red-500 text-[10px] font-bold mt-1.5">{errors.targetRole}</p>}
                       </div>
+                      {errors.phoneNumber && <p className="text-red-500 text-[10px] font-semibold mt-1">{errors.phoneNumber}</p>}
                     </div>
 
-                    <button 
-                      type="submit" 
-                      disabled={saving} 
-                      className="btn-primary w-full sm:w-auto py-3 px-6 text-xs font-bold active:scale-[0.98] transition-transform shadow-md"
-                    >
-                      {saving ? 'Saving changes...' : 'Save Academic Details'}
-                    </button>
+                    <div>
+                      <label className="label">City *</label>
+                      <input
+                        name="city"
+                        required
+                        type="text"
+                        placeholder="e.g. Pune"
+                        className={`input-field ${errors.city ? 'border-red-500 ring-2 ring-red-500/10' : ''}`}
+                        value={form.city}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      {errors.city && <p className="text-red-500 text-[10px] font-semibold mt-1">{errors.city}</p>}
+                    </div>
+                  </div>
 
-                  </form>
-                </section>
-              </div>
+                  {user?.role === 'STUDENT' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">Date of Birth *</label>
+                        <input
+                          name="dateOfBirth"
+                          type="date"
+                          max={maxDob}
+                          className={`input-field ${errors.dateOfBirth ? 'border-red-500 ring-2 ring-red-500/10' : ''}`}
+                          value={form.dateOfBirth || ''}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                        />
+                        {errors.dateOfBirth && <p className="text-red-500 text-[10px] font-semibold mt-1">{errors.dateOfBirth}</p>}
+                        <p className="text-[10px] text-slate-400 font-medium mt-1">Student accounts are limited to users age 15 or older.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="label m-0">Short Biography</label>
+                      <span className="text-[10px] font-medium text-slate-400">{(form.bio || '').length}/400 chars</span>
+                    </div>
+                    <textarea
+                      name="bio"
+                      rows={4}
+                      maxLength={400}
+                      placeholder="Briefly state your learning objectives, tech interests, or details for mentors."
+                      className={`input-field resize-none ${errors.bio ? 'border-red-500' : ''}`}
+                      value={form.bio || ''}
+                      onChange={handleChange}
+                    />
+                    {errors.bio && <p className="text-red-500 text-[10px] font-semibold mt-1">{errors.bio}</p>}
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={saving} 
+                    className="btn-primary"
+                  >
+                    {saving ? 'Saving...' : 'Save Personal Details'}
+                  </button>
+
+                </form>
+              </section>
             )}
 
-            {/* Tab 4: Security */}
+            {/* 3. Academic Info panel wrapped in standard card class */}
+            {activeTab === 'academic' && user?.role === 'STUDENT' && (
+              <section className="card text-left animate-fade-in">
+                <div className="border-b border-slate-200 pb-3 mb-5">
+                  <h2 className="text-lg font-semibold text-slate-900">Academic Target</h2>
+                  <p className="text-slate-500 text-xs mt-0.5">Manage educational level and career target directions.</p>
+                </div>
+
+                <form onSubmit={(e) => handleSaveInfo(e, 'academic')} className="space-y-4">
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Education Level *</label>
+                      <select
+                        name="educationLevel"
+                        required
+                        className={`input-field bg-white ${errors.educationLevel ? 'border-red-500 ring-2 ring-red-500/10' : ''}`}
+                        value={form.educationLevel || ''}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      >
+                        <option value="">Select Option</option>
+                        <option value="High School / Secondary">High School / Secondary</option>
+                        <option value="Undergraduate (B.Tech, BCA, BSc)">Undergraduate (B.Tech, BCA, BSc)</option>
+                        <option value="Postgraduate (M.Tech, MCA, MSc)">Postgraduate (M.Tech, MCA, MSc)</option>
+                        <option value="Working Professional / Other">Working Professional / Other</option>
+                      </select>
+                      {errors.educationLevel && <p className="text-red-500 text-[10px] font-semibold mt-1">{errors.educationLevel}</p>}
+                    </div>
+
+                    <div>
+                      <label className="label">Target Coding Role *</label>
+                      <input
+                        name="targetRole"
+                        required
+                        type="text"
+                        placeholder="e.g. Frontend Developer"
+                        className={`input-field ${errors.targetRole ? 'border-red-500 ring-2 ring-red-500/10' : ''}`}
+                        value={form.targetRole || ''}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      {errors.targetRole && <p className="text-red-500 text-[10px] font-semibold mt-1">{errors.targetRole}</p>}
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={saving} 
+                    className="btn-primary"
+                  >
+                    {saving ? 'Saving...' : 'Save Academic Details'}
+                  </button>
+
+                </form>
+              </section>
+            )}
+
+            {/* 4. Security configuration page wrapped in standard card class */}
             {activeTab === 'security' && (
-              <div className="animate-slide-in space-y-6">
+              <div className="space-y-6 text-left animate-fade-in">
                 
                 {/* Social Login Notice */}
-                <div className="bg-slate-50 border border-slate-200 text-slate-700 rounded-3xl p-5 text-left flex gap-4">
+                <div className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl p-5 flex gap-4">
                   <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
-                    <svg className="w-5 h-5 text-slate-500" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M21.35 11.1H12v2.7h5.3c-.22 1.22-.91 2.26-1.95 2.96v2.46h3.14c1.84-1.7 2.9-4.2 2.9-7.22c0-.62-.06-1.22-.14-1.9M12 23c2.97 0 5.46-.98 7.28-2.66l-3.14-2.46c-.87.58-2 .92-3.14.92c-2.86 0-5.29-1.93-6.16-4.53H3.6v2.84C5.4 20.53 9.1 23 12 23m-6.16-9.73A7.1 7.1 0 015.4 12c0-.72.12-1.43.34-2.1V7.06H2.18A11.9 11.9 0 001 12c0 1.9.44 3.7 1.18 5.28l3.66-2.84v-.17m6.16-7.89c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1c-2.9 0-6.6 2.47-8.4 6.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H3.75v-2.25A13.5 13.5 0 0015.75 5.25z" />
                     </svg>
                   </div>
                   <div className="space-y-1 text-xs">
-                    <h3 className="font-extrabold text-slate-800">Signing in with Google</h3>
-                    <p className="text-slate-500 leading-relaxed">
-                      If you registered using your Google Account, a random secure password was generated automatically. You can continue using Google Sign-In at any time.
+                    <h3 className="font-semibold text-slate-800">Google OAuth Sign-in Active</h3>
+                    <p className="text-slate-600 leading-relaxed">
+                      If you registered using Google Account, a strong secure password was generated automatically. You can continue using Google Sign-in.
                     </p>
-                    <p className="text-slate-500 leading-relaxed pt-1">
-                      If you want to configure a direct email/password login, you can trigger the **Forgot Password** link on the login screen to set a password for the first time.
+                    <p className="text-slate-600 leading-relaxed pt-1">
+                      To configure direct password authentication, click **Forgot Password** on the login page screen to trigger reset emails.
                     </p>
                   </div>
                 </div>
 
                 {/* Password update form */}
-                <section className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 text-left shadow-sm">
-                  <div className="border-b border-slate-100 pb-4 mb-6">
-                    <h2 className="text-lg font-extrabold text-slate-900">Credentials & Key Authentication</h2>
-                    <p className="text-slate-500 text-xs mt-1">Change your portal password securely.</p>
+                <section className="card">
+                  <div className="border-b border-slate-200 pb-3 mb-5">
+                    <h2 className="text-lg font-semibold text-slate-900">Change Password</h2>
+                    <p className="text-slate-500 text-xs mt-0.5">Modify portal credentials to set a new key.</p>
                   </div>
 
-                  <form onSubmit={handleSaveSecurity} className="space-y-5">
+                  <form onSubmit={handleSaveSecurity} className="space-y-4">
                     
-                    <div>
-                      <label className="label">Current Password</label>
-                      <div className="relative">
-                        <input
-                          name="currentPassword"
-                          type={showCurrentPassword ? 'text' : 'password'}
-                          required
-                          className="input-field pr-10 hover:border-slate-400"
-                          placeholder="••••••••"
-                          value={securityForm.currentPassword}
-                          onChange={handleSecurityChange}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                        >
-                          {showCurrentPassword ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          )}
-                        </button>
+                    {!user?.passwordSet && (
+                      <div className="bg-slate-50 border border-slate-200 text-slate-600 rounded-xl p-4 mb-2 text-xs leading-relaxed">
+                        <span className="font-semibold text-slate-800">First-time Password Configuration:</span> Since you registered via Google, you do not have a password set yet. You can set one now without entering a current password.
                       </div>
-                    </div>
+                    )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {user?.passwordSet !== false && (
+                      <div>
+                        <label className="label">Current Password</label>
+                        <div className="relative">
+                          <input
+                            name="currentPassword"
+                            type={showCurrentPassword ? 'text' : 'password'}
+                            required
+                            placeholder="••••••••"
+                            className="input-field pr-10"
+                            value={securityForm.currentPassword}
+                            onChange={handleSecurityChange}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            {showCurrentPassword ? 'Hide' : 'Show'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="label">New Password</label>
                         <div className="relative">
@@ -1006,44 +691,35 @@ export default function ProfilePage() {
                             name="newPassword"
                             type={showNewPassword ? 'text' : 'password'}
                             required
-                            className={`input-field pr-10 ${securityErrors.newPassword ? 'border-red-500 ring-2 ring-red-500/10' : 'hover:border-slate-400'}`}
                             placeholder="••••••••"
+                            className={`input-field pr-10 ${securityErrors.newPassword ? 'border-red-500 ring-2 ring-red-500/10' : ''}`}
                             value={securityForm.newPassword}
                             onChange={handleSecurityChange}
                           />
                           <button
                             type="button"
                             onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors"
                           >
-                            {showNewPassword ? (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                              </svg>
-                            ) : (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                            )}
+                            {showNewPassword ? 'Hide' : 'Show'}
                           </button>
                         </div>
                         {securityErrors.newPassword && (
-                          <p className="text-red-500 text-[10px] font-bold mt-1.5">{securityErrors.newPassword}</p>
+                          <p className="text-red-500 text-[10px] font-semibold mt-1">{securityErrors.newPassword}</p>
                         )}
 
                         {/* Password strength indicators */}
                         {securityForm.newPassword && (
                           <div className="mt-2.5 space-y-1">
-                            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
+                            <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-wider">
                               <span className="text-slate-400">Strength:</span>
                               <span className={
-                                passwordStrength === 'Strong' ? 'text-emerald-600 font-extrabold' :
-                                passwordStrength === 'Medium' ? 'text-amber-500 font-extrabold' : 'text-red-500 font-extrabold'
+                                passwordStrength === 'Strong' ? 'text-emerald-600 font-bold' :
+                                passwordStrength === 'Medium' ? 'text-amber-500 font-bold' : 'text-red-500 font-bold'
                               }>{passwordStrength}</span>
                             </div>
-                            <div className="w-full h-1 bg-slate-100 rounded-full flex gap-0.5">
-                              <div className={`h-full rounded-full transition-all duration-300 ${
+                            <div className="w-full h-1 bg-slate-100 rounded-full flex overflow-hidden">
+                              <div className={`h-full transition-all duration-300 ${
                                 passwordStrength === 'Weak' ? 'w-1/3 bg-red-500' :
                                 passwordStrength === 'Medium' ? 'w-2/3 bg-amber-500' :
                                 passwordStrength === 'Strong' ? 'w-full bg-emerald-500' : 'w-0'
@@ -1060,33 +736,24 @@ export default function ProfilePage() {
                             name="confirmNewPassword"
                             type={showConfirmPassword ? 'text' : 'password'}
                             required
-                            className={`input-field pr-10 ${securityErrors.confirmNewPassword ? 'border-red-500 ring-2 ring-red-500/10' : 'hover:border-slate-400'}`}
                             placeholder="••••••••"
+                            className={`input-field pr-10 ${securityErrors.confirmNewPassword ? 'border-red-500 ring-2 ring-red-500/10' : ''}`}
                             value={securityForm.confirmNewPassword}
                             onChange={handleSecurityChange}
                           />
                           <button
                             type="button"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors"
                           >
-                            {showConfirmPassword ? (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                              </svg>
-                            ) : (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                            )}
+                            {showConfirmPassword ? 'Hide' : 'Show'}
                           </button>
                         </div>
                         {securityErrors.confirmNewPassword && (
-                          <p className="text-red-500 text-[10px] font-bold mt-1.5">{securityErrors.confirmNewPassword}</p>
+                          <p className="text-red-500 text-[10px] font-semibold mt-1">{securityErrors.confirmNewPassword}</p>
                         )}
                         {securityForm.confirmNewPassword && !securityErrors.confirmNewPassword && securityForm.newPassword === securityForm.confirmNewPassword && (
-                          <p className="text-emerald-600 text-[10px] font-bold mt-1.5">✓ Passwords match</p>
+                          <p className="text-emerald-600 text-[10px] font-semibold mt-1">✓ Passwords match</p>
                         )}
                       </div>
                     </div>
@@ -1094,18 +761,20 @@ export default function ProfilePage() {
                     <button 
                       type="submit" 
                       disabled={saving} 
-                      className="btn-primary w-full sm:w-auto py-3 px-6 text-xs font-bold active:scale-[0.98] transition-transform shadow-md"
+                      className="btn-primary"
                     >
-                      {saving ? 'Updating password...' : 'Update Password'}
+                      {saving ? 'Updating...' : 'Update Password'}
                     </button>
 
                   </form>
                 </section>
               </div>
             )}
+              </>
+            )}
 
           </div>
-        )}
+        </div>
 
       </div>
     </Layout>
