@@ -41,7 +41,7 @@ public class AiService {
             @Value("${openrouter.model:openai/gpt-5.2}") String model,
             @Value("${openrouter.max-completion-tokens:512}") long maxCompletionTokens,
             @Value("${openrouter.fallback-models:}") String fallbackModelsCsv,
-            @Value("${openrouter.http-referer:http://localhost:8080}") String httpReferer,
+            @Value("${openrouter.http-referer:https://binary-stack-technologies.vercel.app}") String httpReferer,
             @Value("${openrouter.app-title:BinaryStack-Coaching}") String appTitle,
             UserRepository userRepository,
             EnrollmentRepository enrollmentRepository
