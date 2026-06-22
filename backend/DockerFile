@@ -1,20 +1,11 @@
-# Use Java 21
-FROM eclipse-temurin:21-jdk
+FROM maven:3.9.8-eclipse-temurin-21
 
-# Set working directory
 WORKDIR /app
 
-# Copy project files
 COPY . .
 
-# Give execute permission to Maven Wrapper
-RUN chmod +x mvnw
+RUN mvn clean package -DskipTests
 
-# Build the application
-RUN ./mvnw clean package -DskipTests
-
-# Expose application port
 EXPOSE 8080
 
-# Start Spring Boot application
 CMD ["sh", "-c", "java -jar target/*.jar"]
