@@ -52,6 +52,7 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/courses").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/courses/*/reviews").permitAll()
                 .requestMatchers(
                     "/swagger-ui/**",
                     "/swagger-ui.html",
@@ -60,6 +61,9 @@ public class SecurityConfig {
                     "/login/oauth2/code/**",
                     "/oauth2/authorization/**"
                 ).permitAll()
+                // Reviews (defined before /api/courses/** POST rules)
+                .requestMatchers(HttpMethod.POST, "/api/courses/*/reviews").hasRole("STUDENT")
+                .requestMatchers(HttpMethod.DELETE, "/api/reviews/**").hasAnyRole("STUDENT", "ADMIN")
                 // Admin-only
                 .requestMatchers(HttpMethod.POST,   "/api/courses/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT,    "/api/courses/**").hasRole("ADMIN")
