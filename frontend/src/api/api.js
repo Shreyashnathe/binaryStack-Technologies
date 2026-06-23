@@ -87,3 +87,9 @@ export const getAdminSessions = () => API.get('/sessions/admin');
 export const createSession = (data) => API.post('/sessions', data);
 export const updateSession = (id, data) => API.put(`/sessions/${id}`, data);
 export const deleteSession = (id) => API.delete(`/sessions/${id}`);
+
+// ---- Reviews ----
+export const getCourseReviews = (courseId) => API.get(`/courses/${courseId}/reviews`);
+export const createCourseReview = (courseId, data) => API.post(`/courses/${courseId}/reviews`, data);
+export const deleteReview = (id) => API.delete(`/reviews/${id}`);
+
