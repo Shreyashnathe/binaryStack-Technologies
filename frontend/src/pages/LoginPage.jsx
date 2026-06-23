@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../api/api';
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
@@ -27,7 +28,7 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     setError('');
     setGoogleLoading(true);
-    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+    window.location.href = `${API_URL}/oauth2/authorization/google`;
   };
 
   return (

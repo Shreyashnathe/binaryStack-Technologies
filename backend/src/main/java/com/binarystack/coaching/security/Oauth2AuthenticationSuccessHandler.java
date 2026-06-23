@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import org.springframework.beans.factory.annotation.Value;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.UUID;
@@ -28,15 +29,18 @@ public class Oauth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final String frontendUrl;
 
     public Oauth2AuthenticationSuccessHandler(UserRepository userRepository,
                                               JwtUtil jwtUtil,
                                               CustomUserDetailsService userDetailsService,
-                                              PasswordEncoder passwordEncoder) {
+                                              PasswordEncoder passwordEncoder,
+                                              @Value("${app.frontend-url}") String frontendUrl) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
         this.passwordEncoder = passwordEncoder;
+        this.frontendUrl = frontendUrl;
     }
 
     @Override
@@ -54,7 +58,7 @@ public class Oauth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         if (email == null) {
             log.error("Email not found from OAuth2 provider attributes.");
-            getRedirectStrategy().sendRedirect(request, response, "https://binary-stack-technologies.vercel.app/login?error=email_not_provided");
+            getRedirectStrategy().sendRedirect(request, response, frontendUrl + "/login?error=email_not_provided");
             return;
         }
 
@@ -85,7 +89,7 @@ public class Oauth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtUtil.generateToken(userDetails);
 
-        String targetUrl = "https://binary-stack-technologies.vercel.app/oauth2/redirect?token=" + token;
+        String targetUrl = frontendUrl + "/oauth2/redirect?token=" + token;
         log.info("OAuth2 authentication successful. Redirecting to frontend redirect handler.");
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }

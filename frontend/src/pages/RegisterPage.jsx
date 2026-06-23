@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { register as apiRegister } from '../api/api';
+import { register as apiRegister, API_URL } from '../api/api';
 
 export default function RegisterPage() {
   const { login, loading } = useAuth();
@@ -118,7 +118,7 @@ export default function RegisterPage() {
   const handleGoogleSignUp = () => {
     setError('');
     setGoogleLoading(true);
-    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+    window.location.href = `${API_URL}/oauth2/authorization/google`;
   };
 
   // Submit complete 3-step registration form
