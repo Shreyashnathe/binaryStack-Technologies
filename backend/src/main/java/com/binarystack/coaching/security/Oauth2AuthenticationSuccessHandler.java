@@ -54,7 +54,7 @@ public class Oauth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         if (email == null) {
             log.error("Email not found from OAuth2 provider attributes.");
-            getRedirectStrategy().sendRedirect(request, response, "http://localhost:5173/login?error=email_not_provided");
+            getRedirectStrategy().sendRedirect(request, response, "https://binary-stack-technologies.vercel.app/login?error=email_not_provided");
             return;
         }
 
@@ -85,7 +85,7 @@ public class Oauth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtUtil.generateToken(userDetails);
 
-        String targetUrl = "http://localhost:5173/oauth2/redirect?token=" + token;
+        String targetUrl = "https://binary-stack-technologies.vercel.app/oauth2/redirect?token=" + token;
         log.info("OAuth2 authentication successful. Redirecting to frontend redirect handler.");
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }

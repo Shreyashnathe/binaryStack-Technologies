@@ -33,7 +33,7 @@ public class OpenApiConfig {
     public RestClient.Builder restClientBuilder() {
         return RestClient.builder()
                 .requestInterceptor((request, body, execution) -> {
-                    request.getHeaders().add("HTTP-Referer", "http://localhost:8080");
+                    request.getHeaders().add("HTTP-Referer", "https://binary-stack-technologies.vercel.app");
                     request.getHeaders().add("X-OpenRouter-Title", "SpringAI-App");
                     return execution.execute(request, body);
                 });
