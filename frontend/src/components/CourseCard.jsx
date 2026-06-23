@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import StarRating from './StarRating';
 
 export default function CourseCard({
   course,
@@ -22,6 +23,20 @@ export default function CourseCard({
       </div>
 
       <h3 className="text-slate-900 font-semibold text-lg mt-3 leading-tight">{course.title}</h3>
+
+      <div className="flex items-center gap-1.5 mt-2">
+        <StarRating rating={Math.round(course.averageRating || 0)} size={14} />
+        <span className="text-[11px] text-slate-500 font-semibold mt-0.5">
+          {course.reviewCount > 0 ? (
+            <>
+              <span className="text-amber-600 font-extrabold mr-1">{course.averageRating?.toFixed(1)}</span>
+              ({course.reviewCount} review{course.reviewCount !== 1 ? 's' : ''})
+            </>
+          ) : (
+            'No reviews'
+          )}
+        </span>
+      </div>
       <p className="text-slate-600 text-sm mt-2 line-clamp-3 leading-relaxed">
         {course.description || 'No description provided.'}
       </p>

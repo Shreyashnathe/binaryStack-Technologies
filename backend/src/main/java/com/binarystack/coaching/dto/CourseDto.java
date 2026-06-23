@@ -35,6 +35,9 @@ public class CourseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private Double averageRating;
+    private Long reviewCount;
+
     public CourseDto() {
     }
 
@@ -118,5 +121,21 @@ public class CourseDto {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public Long getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(Long reviewCount) {
+        this.reviewCount = reviewCount;
     }
 }

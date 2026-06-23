@@ -19,4 +19,9 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     boolean existsByStudentAndCourse(User student, Course course);
 
     Optional<Review> findByStudentAndCourse(User student, Course course);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(AVG(r.rating), 0.0) FROM Review r WHERE r.course.id = :courseId")
+    Double getAverageRatingByCourseId(@org.springframework.data.repository.query.Param("courseId") Long courseId);
+
+    long countByCourseId(Long courseId);
 }

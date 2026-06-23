@@ -5,6 +5,7 @@ import com.binarystack.coaching.entity.Course;
 import com.binarystack.coaching.exception.ResourceNotFoundException;
 import com.binarystack.coaching.repository.CourseRepository;
 import com.binarystack.coaching.repository.EnrollmentRepository;
+import com.binarystack.coaching.repository.ReviewRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,11 +22,14 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final ReviewRepository reviewRepository;
 
     public CourseService(CourseRepository courseRepository,
-                         EnrollmentRepository enrollmentRepository) {
+                         EnrollmentRepository enrollmentRepository,
+                         ReviewRepository reviewRepository) {
         this.courseRepository = courseRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     public List<CourseDto> getAllCourses() {
@@ -84,7 +88,7 @@ public class CourseService {
     }
 
     public CourseDto toDto(Course course) {
-        return new CourseDto(
+        CourseDto dto = new CourseDto(
             course.getId(),
             course.getTitle(),
             course.getDescription(),
@@ -94,5 +98,13 @@ public class CourseService {
             course.getCreatedAt(),
             course.getUpdatedAt()
         );
+        if (course.getId() != null) {
+            dto.setAverageRating(reviewRepository.getAverageRatingByCourseId(course.getId()));
+            dto.setReviewCount(reviewRepository.countByCourseId(course.getId()));
+        } else {
+            dto.setAverageRating(0.0);
+            dto.setReviewCount(0L);
+        }
+        return dto;
     }
 }
