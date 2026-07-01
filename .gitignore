@@ -40,3 +40,14 @@ frontend/*.local
 .env
 .env.local
 .env.*.local
+
+# Interview Preparation & Resume Guides
+*resume*.md
+*interview*.md
+*prep*.md
+*notes*.md
+*guide*.md
+walkthrough.md
+implementation_plan.md
+task.md
+

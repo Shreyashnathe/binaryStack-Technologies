@@ -8,6 +8,9 @@ import com.binarystack.coaching.repository.EnrollmentRepository;
 import com.binarystack.coaching.repository.ReviewRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,18 +35,21 @@ public class CourseService {
         this.reviewRepository = reviewRepository;
     }
 
+    @Cacheable(value = "courses", key = "'all'")
     public List<CourseDto> getAllCourses() {
         return courseRepository.findAll().stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
+    @Cacheable(value = "course", key = "#id")
     public CourseDto getCourseById(Long id) {
         Objects.requireNonNull(id, "Course id must not be null");
         return toDto(findCourseOrThrow(id));
     }
 
     @Transactional
+    @CacheEvict(value = "courses", allEntries = true)
     public CourseDto createCourse(CourseDto dto) {
         Course course = new Course();
         course.setTitle(dto.getTitle());
@@ -57,6 +63,10 @@ public class CourseService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "courses", allEntries = true),
+        @CacheEvict(value = "course", key = "#id")
+    })
     public CourseDto updateCourse(Long id, CourseDto dto) {
         Objects.requireNonNull(id, "Course id must not be null");
         Course course = findCourseOrThrow(id);
@@ -71,6 +81,10 @@ public class CourseService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "courses", allEntries = true),
+        @CacheEvict(value = "course", key = "#id")
+    })
     public void deleteCourse(Long id) {
         Objects.requireNonNull(id, "Course id must not be null");
         Course course = findCourseOrThrow(id);

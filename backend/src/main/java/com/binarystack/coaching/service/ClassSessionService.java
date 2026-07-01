@@ -8,6 +8,9 @@ import com.binarystack.coaching.exception.ResourceNotFoundException;
 import com.binarystack.coaching.repository.ClassSessionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +30,7 @@ public class ClassSessionService {
         this.classSessionRepository = classSessionRepository;
     }
 
+    @Cacheable(value = "upcoming_sessions", key = "'upcoming'")
     public List<ClassSessionDto> getUpcomingSessions() {
         return classSessionRepository
                 .findByActiveTrueAndStartTimeGreaterThanEqualOrderByStartTimeAsc(LocalDateTime.now())
@@ -35,6 +39,7 @@ public class ClassSessionService {
                 .collect(Collectors.toList());
     }
 
+    @Cacheable(value = "admin_sessions", key = "'all'")
     public List<ClassSessionDto> getAllSessionsForAdmin() {
         return classSessionRepository.findAllByOrderByStartTimeAsc()
                 .stream()
@@ -43,6 +48,10 @@ public class ClassSessionService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "upcoming_sessions", allEntries = true),
+        @CacheEvict(value = "admin_sessions", allEntries = true)
+    })
     public ClassSessionDto createSession(ClassSessionDto dto) {
         validateSession(dto);
 
@@ -55,6 +64,10 @@ public class ClassSessionService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "upcoming_sessions", allEntries = true),
+        @CacheEvict(value = "admin_sessions", allEntries = true)
+    })
     public ClassSessionDto updateSession(Long id, ClassSessionDto dto) {
         Objects.requireNonNull(id, "Session id must not be null");
         validateSession(dto);
@@ -68,6 +81,10 @@ public class ClassSessionService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "upcoming_sessions", allEntries = true),
+        @CacheEvict(value = "admin_sessions", allEntries = true)
+    })
     public void deleteSession(Long id) {
         Objects.requireNonNull(id, "Session id must not be null");
         findByIdOrThrow(id);

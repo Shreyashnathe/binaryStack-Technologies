@@ -25,3 +25,10 @@ openrouter.api-key=YOUR_OPENROUTER_API_KEY
 app.razorpay.key-id=YOUR_RAZORPAY_KEY_ID
 app.razorpay.key-secret=YOUR_RAZORPAY_KEY_SECRET
 app.razorpay.currency=INR
+
+# ---- Redis Cache ----
+spring.cache.type=redis
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+spring.data.redis.password=
+
